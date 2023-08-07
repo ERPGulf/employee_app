@@ -1,3 +1,5 @@
+#Employee app from ERPGulf.com
+
 app_name = "employee_app"
 app_title = "Employee app for ERPNext"
 app_publisher = "ERPGulf.com"
