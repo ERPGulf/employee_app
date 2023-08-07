@@ -126,7 +126,7 @@ app_license = "MIT"
 # }
 
 doc_events = {
-    "User": {
+    "Employee": {
         "on_update": "employee_app.user_qa_code.create_qr_code",
         "on_trash": "employee_app.delete_qr_code_file"
     }

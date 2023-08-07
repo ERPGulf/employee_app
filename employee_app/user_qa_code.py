@@ -16,19 +16,8 @@ def create_qr_code(doc, method):
 	"""
 	print("here we are *************")
 
-	data = "youtubel.com"
-	urls = qr_create(data)
-	urls.png('mypic.png',scale=6)
-	img=cv2.imread('mypic.png')
-	det = cv2.QRCodeDetector()
-	val, pts, st_code = det.detectAndDecode(img)
-	print(val)
-	# return
-
-	region = "Qatar" # get_region(doc.company)
-	
 	# if QR Code field not present, do nothing
-	if not hasattr(doc, 'qr_code'):
+	if not hasattr(doc, 'custom_qr_code'):
 		return
 
 	# # Don't create QR Code if it already exists
@@ -36,10 +25,10 @@ def create_qr_code(doc, method):
 	# if qr_code and frappe.db.exists({"doctype": "File", "file_url": qr_code}):
 	# 	return
 	print("here we are 222 *************")
-	fields = frappe.get_meta('User').fields
+	fields = frappe.get_meta('Employee').fields
 
 	for field in fields:
-		if field.fieldname == 'qr_code' and field.fieldtype == 'Attach Image':
+		if field.fieldname == 'custom_qr_code' and field.fieldtype == 'Attach Image':
 			# creating qr code for the Sales Invoice
 			''' TLV conversion for
 			1. Seller's Name
@@ -60,13 +49,19 @@ def create_qr_code(doc, method):
 			value = company_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
 			
-			user_name = str(doc.username)
+			user_name = str(doc.name)
 			if not user_name:
-				frappe.throw(_('User name missing for {} in the  document'))
+				frappe.throw(_('Employee name missing for {} in the  document'))
 
 			tag = bytes([1]).hex()
 			length = bytes([len(user_name.encode('utf-8'))]).hex()
 			value = user_name.encode('utf-8').hex()
+			tlv_array.append(''.join([tag, length, value]))
+   
+			full_name = str(doc.first_name + "  " + doc.last_name)
+			tag = bytes([1]).hex()
+			length = bytes([len(full_name.encode('utf-8'))]).hex()
+			value = full_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
    
 			api_url = "https://dev.erpgulf.com:83343/api/"
@@ -104,7 +99,7 @@ def create_qr_code(doc, method):
 			_file.save()
 
 			# assigning to document
-			doc.db_set('qr_code', _file.file_url)
+			doc.db_set('custom_qr_code', _file.file_url)
 			doc.notify_update()
 
    
@@ -114,14 +109,11 @@ def create_qr_code(doc, method):
 def delete_qr_code_file(doc, method):
 	"""Delete QR Code on deleted sales invoice"""
 
-	region = get_region(doc.company)
-	if region not in ['Saudi Arabia']:
-		return
 
-	if hasattr(doc, 'qr_code'):
-		if doc.get('qr_code'):
+	if hasattr(doc, 'custom_qr_code'):
+		if doc.get('custom_qr_code'):
 			file_doc = frappe.get_list('File', {
-				'file_url': doc.qr_code,
+				'file_url': doc.custom_qr_code,
 				'attached_to_doctype': doc.doctype,
 				'attached_to_name': doc.name
 			})
