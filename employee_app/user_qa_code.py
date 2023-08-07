@@ -40,7 +40,7 @@ def create_qr_code(doc, method):
 			tlv_array = []
 			# Sellers Name
 
-			company_name = "Im Seller" # frappe.db.get_value('Company',doc.company,'company_name')
+			company_name = "Company: " + frappe.db.get_value('Company',doc.company,'company_name')
 			if not company_name:
 				frappe.throw(_('Company name missing for {} in the company document'.format(doc.company)))
 
@@ -49,7 +49,7 @@ def create_qr_code(doc, method):
 			value = company_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
 			
-			user_name = str(doc.name)
+			user_name = "Employee_Code: " + str(doc.name)
 			if not user_name:
 				frappe.throw(_('Employee name missing for {} in the  document'))
 
@@ -58,13 +58,13 @@ def create_qr_code(doc, method):
 			value = user_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
    
-			full_name = str(doc.first_name + "  " + doc.last_name)
+			full_name = "Full_Name: " + str(doc.first_name + "  " + doc.last_name)
 			tag = bytes([1]).hex()
 			length = bytes([len(full_name.encode('utf-8'))]).hex()
 			value = full_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
    
-			api_url = "https://dev.erpgulf.com:83343/api/"
+			api_url = "API: " +  str("https://dev.erpgulf.com:83343/api/")
 			if not api_url:
 				frappe.throw(_('API URL is missing for {} in the  document'))
 
