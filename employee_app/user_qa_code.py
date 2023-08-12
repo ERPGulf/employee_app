@@ -14,8 +14,6 @@ from base64 import b64encode
 def create_qr_code(doc, method):
 	"""Create QR Code after inserting Sales Inv
 	"""
-	print("here we are *************")
-
 	# if QR Code field not present, do nothing
 	if not hasattr(doc, 'custom_qr_code'):
 		return
@@ -24,7 +22,7 @@ def create_qr_code(doc, method):
 	# qr_code = doc.get("qr_code")
 	# if qr_code and frappe.db.exists({"doctype": "File", "file_url": qr_code}):
 	# 	return
-	print("here we are 222 *************")
+	print("here we are 444 *************")
 	fields = frappe.get_meta('Employee').fields
 
 	for field in fields:
@@ -63,8 +61,14 @@ def create_qr_code(doc, method):
 			length = bytes([len(full_name.encode('utf-8'))]).hex()
 			value = full_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
+
+			full_name = "User_id: " + str(doc.user_id)
+			tag = bytes([1]).hex()
+			length = bytes([len(full_name.encode('utf-8'))]).hex()
+			value = full_name.encode('utf-8').hex()
+			tlv_array.append(''.join([tag, length, value]))
    
-			api_url = "API: " +  str("https://dev.erpgulf.com:83343/api/")
+			api_url = "API: " +  str("https://dev.erpgulf.com/api/")
 			if not api_url:
 				frappe.throw(_('API URL is missing for {} in the  document'))
 
