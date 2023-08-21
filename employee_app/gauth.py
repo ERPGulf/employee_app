@@ -34,9 +34,9 @@ def generate_custom_token(username, password):
             frappe.throw("Username and password are required.")
         # so basically we are going to use inbuilt frappe oauth2 and generate token from it by passing creds
         # Use Frappe's oauth2.grant_password function to generate tokens
-        client_id = "7b47943400"  # Replace with your OAuth client ID
-        client_secret = "65025bf364"  # Replace with your OAuth client secret
-        url = "https://dev.erpgulf.com/api/method/employee_app.gauth.get_token"
+        client_id = "fa3c840500"  # Replace with your OAuth client ID
+        client_secret = "718cfef464"  # Replace with your OAuth client secret
+        url = "https://dev.claudion.com/api/method/employee_app.gauth.get_token"
         payload = {
             "username": username,
             "password": password,
