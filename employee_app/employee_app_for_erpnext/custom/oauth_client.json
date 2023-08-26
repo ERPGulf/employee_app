@@ -1,0 +1,32 @@
+{
+ "custom_fields": [],
+ "custom_perms": [],
+ "doctype": "OAuth Client",
+ "links": [],
+ "property_setters": [
+  {
+   "_assign": null,
+   "_comments": null,
+   "_liked_by": null,
+   "_user_tags": null,
+   "creation": "2023-08-21 21:51:30.440777",
+   "default_value": null,
+   "doc_type": "OAuth Client",
+   "docstatus": 0,
+   "doctype_or_field": "DocField",
+   "field_name": "user",
+   "idx": 0,
+   "is_system_generated": 0,
+   "modified": "2023-08-21 21:51:30.440777",
+   "modified_by": "Administrator",
+   "module": null,
+   "name": "OAuth Client-user-hidden",
+   "owner": "Administrator",
+   "property": "hidden",
+   "property_type": "Check",
+   "row_name": null,
+   "value": "0"
+  }
+ ],
+ "sync_on_migrate": 1
+}

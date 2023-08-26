@@ -22,7 +22,6 @@ def create_qr_code(doc, method):
 	# qr_code = doc.get("qr_code")
 	# if qr_code and frappe.db.exists({"doctype": "File", "file_url": qr_code}):
 	# 	return
-	print("here we are 444 *************")
 	fields = frappe.get_meta('Employee').fields
 
 	for field in fields:
@@ -68,7 +67,7 @@ def create_qr_code(doc, method):
 			value = full_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
    
-			api_url = "API: " +  str("https://dev.claudion.com/api/")
+			api_url = "API: " +  frappe.utils.get_host_name_from_request() + "/api/"
 			if not api_url:
 				frappe.throw(_('API URL is missing for {} in the  document'))
 
