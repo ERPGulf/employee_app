@@ -36,10 +36,10 @@ def generate_custom_token(username, password):
             frappe.throw("Username and password are required.")
         # so basically we are going to use inbuilt frappe oauth2 and generate token from it by passing creds
         # Use Frappe's oauth2.grant_password function to generate tokens
-        client_id = client_id  # Replace with your OAuth client ID
-        client_secret = client_secret  # Replace with your OAuth client secret
+        client_id = clientID  # Replace with your OAuth client ID
+        client_secret = clientSecret  # Replace with your OAuth client secret
         # url = "https://dev.claudion.com/api/method/employee_app.gauth.get_token"
-        url =  frappe.utils.get_host_name_from_request()  + "/api/method/employee_app.gauth.get_token"
+        url =  frappe.local.conf.host_name  + "/api/method/employee_app.gauth.get_token"
         payload = {
             "username": username,
             "password": password,
@@ -47,8 +47,6 @@ def generate_custom_token(username, password):
             "client_id": client_id,
             "client_secret": client_secret,
         }
-        return payload
-        pass
         files = []
         headers = {"Content-Type": "application/json"}
         response = requests.request("POST", url, data=payload, files=files)
@@ -70,7 +68,7 @@ def generate_custom_token_for_employee( password):
         client_id = clientID  # Replace with your OAuth client ID
         client_secret = clientSecret  # Replace with your OAuth client secret
         # url = "https://dev.claudion.com/api/method/employee_app.gauth.get_token"
-        url =  frappe.utils.get_host_name_from_request()  + "/api/method/employee_app.gauth.get_token"
+        url =  frappe.local.conf.host_name  + "/api/method/employee_app.gauth.get_token"
         payload = {
             # "username": username,
             "username": clientUser,
