@@ -41,5 +41,20 @@ def get_latest_open_trip(employee_id):
         return doc
     except Exception as e:
         return "No Open Trip Found"
+    
+@frappe.whitelist(allow_guest=True)
+def get_all_contract(party_type=None,party_name=None,start_date=None,end_date=None,contract_terms=None):
+    try:
+        doc = frappe.get_doc("Contract")
+        doc.party_type: party_type
+        doc.party_name: party_name
+        doc.start_date: start_date
+        doc.end_date: end_date
+        doc.contract_terms: contract_terms
+        doc.save()
+        frappe.db.commit()
+        return doc
+    except Exception as e:
+        return e
 
 
