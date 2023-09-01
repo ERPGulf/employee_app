@@ -19,9 +19,10 @@ def insert_new_trip(employee_id, trip_start_time, trip_start_km,trip_status,trip
         return doc
     except Exception as e:
         return e
-
+    
+#api for  closing trip and updatating the odo-meter
 @frappe.whitelist(allow_guest=True)
-def close_the_trip(trip_id, trip_end_km=None, trip_end_location=None, trip_status=None, trip_end_time=None):
+def close_the_trip(trip_id,vehicle_id, trip_end_km=None, trip_end_location=None, trip_status=None, trip_end_time=None):
     try:
         doc = frappe.get_doc("driver trips", trip_id)
         doc.trip_end_time = trip_end_time
@@ -29,7 +30,7 @@ def close_the_trip(trip_id, trip_end_km=None, trip_end_location=None, trip_statu
         doc.trip_end_location = trip_end_location
         doc.custom_trip_status = trip_status
         doc.save()
-        frappe.db.commit()
+        frappe.db.set_value("Vehicle",vehicle_id, "last_odometer", trip_end_km)
         return doc
     except Exception as e:
         return e
@@ -42,25 +43,32 @@ def get_latest_open_trip(employee_id):
     except Exception as e:
         return "No Open Trip Found"
     
+
+
+
+#API for contract  party name.
 @frappe.whitelist(allow_guest=True)
-def testoutput():
-    return "Hello how are you"
-
-
-
-@frappe.whitelist(allow_guest=True)
-def get_all_contract(party_type=None,party_name=None,start_date=None,end_date=None,contract_terms=None):
-    try:
-        doc = frappe.get_doc("Contract")
-        doc.party_type: party_type
-        doc.party_name: party_name
-        doc.start_date: start_date
-        doc.end_date: end_date
-        doc.contract_terms: contract_terms
-        doc.save()
-        frappe.db.commit()
-        return doc
-    except Exception as e:
+def contract_list(enter_name):
+ try:
+     doc = frappe.db.get_list('Contract',fields=['party_name',],filters={'party_name': ['like', f'{enter_name}%']},as_list=True,) 
+     return doc
+ except Exception as e:
         return e
+    
+    
+# API for vehicle no and odometer
+@frappe.whitelist(allow_guest=True)
+def vehicle_list(vehicle_no,odometer):
+ try:
+     doc = frappe.db.get_list('Vehicle',fields=['license_plate','last_odometer'],filters={'license_plate': ['like', f'{vehicle_no}%']},as_list=True,) 
+     return doc
+ except Exception as e:
+        return e
+
+
+    
+
+
+
 
 
