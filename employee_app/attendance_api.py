@@ -43,6 +43,12 @@ def get_latest_open_trip(employee_id):
         return "No Open Trip Found"
     
 @frappe.whitelist(allow_guest=True)
+def testoutput():
+    return "Hello how are you"
+
+
+
+@frappe.whitelist(allow_guest=True)
 def get_all_contract(party_type=None,party_name=None,start_date=None,end_date=None,contract_terms=None):
     try:
         doc = frappe.get_doc("Contract")
