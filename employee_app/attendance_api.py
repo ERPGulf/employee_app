@@ -61,7 +61,16 @@ def contract_list(enter_name):
 def vehicle_list(vehicle_no,odometer,vehicle_model):
  try:
      doc = frappe.db.get_list('Vehicle',fields=['license_plate','last_odometer','model'],filters={'license_plate': ['like', f'{vehicle_no}%']},as_list=True,) 
-     return doc
+     result=[]
+     for item in doc:
+            vehicle_info = {
+                'vehicle_number_plate': item[0],
+                'odo-meter': item[1],
+                'vehicle_model': item[2]
+            }
+            result.append(vehicle_info)
+
+     return result
  except Exception as e:
         return e
 
