@@ -65,7 +65,7 @@ def vehicle_list(vehicle_no,odometer,vehicle_model):
      for item in doc:
             vehicle_info = {
                 'vehicle_number_plate': item[0],
-                'odo-meter': item[1],
+                'odometer': item[1],
                 'vehicle_model': item[2]
             }
             result.append(vehicle_info)
