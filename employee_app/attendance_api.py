@@ -58,9 +58,9 @@ def contract_list(enter_name):
     
 # API for vehicle no and odometer
 @frappe.whitelist(allow_guest=True)
-def vehicle_list(vehicle_no,odometer):
+def vehicle_list(vehicle_no,odometer,vehicle_model):
  try:
-     doc = frappe.db.get_list('Vehicle',fields=['license_plate','last_odometer'],filters={'license_plate': ['like', f'{vehicle_no}%']},as_list=True,) 
+     doc = frappe.db.get_list('Vehicle',fields=['license_plate','last_odometer','model'],filters={'license_plate': ['like', f'{vehicle_no}%']},as_list=True,) 
      return doc
  except Exception as e:
         return e
