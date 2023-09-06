@@ -1,5 +1,5 @@
 import frappe
-import json
+
 @frappe.whitelist(allow_guest=True)
 def insert_new_trip(employee_id, trip_start_time, trip_start_km,trip_status,trip_start_location = None,job_order=None, trip_type=None, vehicle_number=None):
     try:
@@ -50,7 +50,11 @@ def get_latest_open_trip(employee_id):
         doc = frappe.get_doc("driver trips", {"employee_id": employee_id, "custom_trip_status": True}, ["name", "trip_start_time", "trip_starting_km", "trip_start_location", "custom_job_order", "custom_trip_type", "vehicle_number", "trip_status"], order_by="creation desc")
         return doc
     except Exception as e:
-        return "No Open Trip Found"
+        frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
     
 
 
