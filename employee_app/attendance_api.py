@@ -50,11 +50,12 @@ def get_latest_open_trip(employee_id):
         doc = frappe.get_doc("driver trips", {"employee_id": employee_id, "custom_trip_status": True}, ["name", "trip_start_time", "trip_starting_km", "trip_start_location", "custom_job_order", "custom_trip_type", "vehicle_number", "trip_status"], order_by="creation desc")
         return doc
     except Exception as e:
-        frappe.throw(
-    title='Error',
-    msg='Authentication required. Please provide valid credentials..',
-    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
-)
+        return "trip not found"
+#         frappe.throw(
+#     title='Error',
+#     msg='Authentication required. Please provide valid credentials..',
+#     exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+# )
     
 
 
