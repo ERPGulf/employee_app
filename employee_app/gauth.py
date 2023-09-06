@@ -6,7 +6,11 @@ import frappe
 def getToken(self):
     try:
         if not username or not password:
-            frappe.throw("Username and password are required.")
+             frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
 
         # Authenticate user credentials
         user = frappe.get_doc("User", {"email": username})
@@ -18,10 +22,19 @@ def getToken(self):
             )  # Store the token in Redis cache
             return {"access_token": token}
         else:
+             frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
             # Failed login
-            frappe.throw("Invalid login credentials.")
+            
     except Exception as e:
-        frappe.throw("An error occurred during login.")
+         frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
 
 
 from frappe.integrations.oauth2 import get_token
@@ -79,7 +92,12 @@ def generate_custom_token_for_employee( password):
         # return str(clientID) + " "  + str(clientSecret) +  " "  +  str(clientUser)
         username = clientUser
         if not username or not password:
-            frappe.throw("Username and password are required.")
+            # frappe.throw("Username and password are required.")
+             frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
         # so basically we are going to use inbuilt frappe oauth2 and generate token from it by passing creds
         # Use Frappe's oauth2.grant_password function to generate tokens
         client_id = clientID  # Replace with your OAuth client ID
@@ -100,7 +118,12 @@ def generate_custom_token_for_employee( password):
         return json.loads(response.text)
 
     except Exception as e:
-        frappe.throw("An error occurred during login.")
+        # frappe.throw("An error occurred during login.")
+         frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
 
 
 from frappe.auth import LoginManager
@@ -123,7 +146,12 @@ def generate_access_token(username, password):
         # Failed login
         #    return {"error": "Invalid login credentials."}
     except Exception as e:
-        frappe.throw("An error occurred during login.")
+        # frappe.throw("An error occurred during login.")
+         frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
 
 
 @frappe.whitelist(allow_guest=True)
@@ -135,7 +163,12 @@ def get_all_users():
         # Return the list of users as JSON
         return {"users": users}
     except Exception as e:
-        frappe.throw("An error occurred while fetching users.")
+        # frappe.throw("An error occurred while fetching users.")
+         frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
 
 #check who is logged in
 @frappe.whitelist(allow_guest=True)
@@ -143,4 +176,8 @@ def whoami():
         try:
             return frappe.session.user
         except Exception as e:
-            return e
+             frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
