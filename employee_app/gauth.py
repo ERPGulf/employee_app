@@ -2,7 +2,7 @@ import requests
 import json
 import frappe
 
-
+@frappe.whitelist(allow_guest=True)
 def getToken(self):
     try:
         if not username or not password:
@@ -33,13 +33,18 @@ def generate_custom_token(username, password):
         clientID, clientSecret, clientUser = frappe.db.get_value('OAuth Client', {'app_name': 'MobileAPP'}, ['client_id', 'client_secret','user'])
         # return str(clientID) + " "  + str(clientSecret) +  " "  +  str(clientUser)
         if not username or not password:
-            frappe.throw("Username and password are required.")
+          frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
         # so basically we are going to use inbuilt frappe oauth2 and generate token from it by passing creds
         # Use Frappe's oauth2.grant_password function to generate tokens
         client_id = clientID  # Replace with your OAuth client ID
         client_secret = clientSecret  # Replace with your OAuth client secret
         # url = "https://dev.claudion.com/api/method/employee_app.gauth.get_token"
         url =  frappe.local.conf.host_name  + "/api/method/employee_app.gauth.get_token"
+        # url =  frappe.local.conf.host_name  + "api/method/employee_app.attendance_api.vehicle_list"
         payload = {
             "username": username,
             "password": password,
@@ -50,11 +55,23 @@ def generate_custom_token(username, password):
         files = []
         headers = {"Content-Type": "application/json"}
         response = requests.request("POST", url, data=payload, files=files)
-        return json.loads(response.text)
+        # return json.loads(response.text)
+        if response.status_code == 200:
+            return json.loads(response.text)
+        else:
+            frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
 
     except Exception as e:
-        frappe.throw("An error occurred during login.")
-
+              frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
+         
 @frappe.whitelist(allow_guest=True)
 def generate_custom_token_for_employee( password):
     try:

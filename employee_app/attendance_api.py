@@ -1,5 +1,5 @@
 import frappe
-
+import json
 @frappe.whitelist(allow_guest=True)
 def insert_new_trip(employee_id, trip_start_time, trip_start_km,trip_status,trip_start_location = None,job_order=None, trip_type=None, vehicle_number=None):
     try:
@@ -18,7 +18,12 @@ def insert_new_trip(employee_id, trip_start_time, trip_start_km,trip_status,trip
         frappe.db.commit()
         return doc
     except Exception as e:
-        return e
+         frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
+        
     
 #api for  closing trip and updatating the odo-meter
 @frappe.whitelist(allow_guest=True)
@@ -33,7 +38,11 @@ def close_the_trip(trip_id,vehicle_id, trip_end_km=None, trip_end_location=None,
         frappe.db.set_value("Vehicle",vehicle_id, "last_odometer", trip_end_km)
         return doc
     except Exception as e:
-        return e
+         frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
 
 @frappe.whitelist(allow_guest=True)
 def get_latest_open_trip(employee_id):
@@ -53,7 +62,12 @@ def contract_list(enter_name):
      doc = frappe.db.get_list('Contract',fields=['party_name',],filters={'party_name': ['like', f'{enter_name}%']},as_list=True,) 
      return doc
  except Exception as e:
-        return e
+  frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
+
     
     
 # API for vehicle no and odometer
@@ -69,10 +83,27 @@ def vehicle_list(vehicle_no,odometer,vehicle_model):
                 'vehicle_model': item[2]
             }
             result.append(vehicle_info)
-
      return result
- except Exception as e:
-        return e
+ except  Exception as e:
+  frappe.throw(
+    title='Error:unauthorized',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
+
+
+
+ 
+
+         
+     
+
+
+        
+
+
+
+
 
 
     
