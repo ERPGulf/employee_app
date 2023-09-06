@@ -115,10 +115,18 @@ def generate_custom_token_for_employee( password):
         files = []
         headers = {"Content-Type": "application/json"}
         response = requests.request("POST", url, data=payload, files=files)
-        return json.loads(response.text)
+        # return json.loads(response.text)
+        if response.status_code == 200:
+            return json.loads(response.text)
+        else:
+            frappe.throw(
+    title='Error',
+    msg='Authentication required. Please provide valid credentials..',
+    exc="HTTP/1.1 417 Expectation failed WWW-Authenticate: Basic realm=\"Authentication required"
+)
 
     except Exception as e:
-        # frappe.throw("An error occurred during login.")
+     
          frappe.throw(
     title='Error',
     msg='Authentication required. Please provide valid credentials..',
@@ -146,7 +154,7 @@ def generate_access_token(username, password):
         # Failed login
         #    return {"error": "Invalid login credentials."}
     except Exception as e:
-        # frappe.throw("An error occurred during login.")
+        
          frappe.throw(
     title='Error',
     msg='Authentication required. Please provide valid credentials..',
@@ -163,7 +171,7 @@ def get_all_users():
         # Return the list of users as JSON
         return {"users": users}
     except Exception as e:
-        # frappe.throw("An error occurred while fetching users.")
+       
          frappe.throw(
     title='Error',
     msg='Authentication required. Please provide valid credentials..',
