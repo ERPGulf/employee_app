@@ -67,7 +67,7 @@ def create_qr_code(doc, method):
 			value = full_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
    
-			api_url = "API: " +  frappe.utils.get_host_name_from_request() + "/api/"
+			api_url = "API: " +  frappe.utils.get_url() + "/api/"
 			if not api_url:
 				frappe.throw(_('API URL is missing for {} in the  document'))
 
