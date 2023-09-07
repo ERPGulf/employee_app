@@ -47,8 +47,18 @@ def close_the_trip(trip_id,vehicle_id, trip_end_km=None, trip_end_location=None,
 @frappe.whitelist(allow_guest=True)
 def get_latest_open_trip(employee_id):
     try:
-        doc = frappe.get_list("driver trips", {"employee_id": employee_id, "custom_trip_status": True}, ["name", "trip_start_time", "trip_starting_km", "trip_start_location", "custom_job_order", "custom_trip_type", "vehicle_number", "custom_trip_status"], order_by="creation desc")
-        return doc
+       doc = frappe.get_list("driver trips", {"employee_id": employee_id, "custom_trip_status": True}, ["name", "trip_start_time", "trip_starting_km", "trip_start_location", "custom_job_order", "custom_trip_type", "vehicle_number", "custom_trip_status"], order_by="creation desc")
+       if doc:
+            latest_trip = doc[0]
+            trip_details = {
+                "trip_no": latest_trip.get("name"),
+                "employee": employee_id,
+                "start_time": latest_trip.get("trip_start_time"),
+                "trip_status":latest_trip.get("custom_trip_status")
+            }
+            return trip_details
+       else:
+            return {"trip_status": 0}
     except Exception as e:
          frappe.throw(
     title='Error',
