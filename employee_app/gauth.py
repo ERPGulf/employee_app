@@ -107,7 +107,7 @@ def generate_access_token(username, password):
     # from frappe.utils.password import check_password
     try:
         # if not username or not password:
-        # 	frappe.throw("Username and password are required.")
+        	# frappe.throw(error)
 
         # Authenticate user credentials
         login_manager = LoginManager()
@@ -122,7 +122,7 @@ def generate_access_token(username, password):
          frappe.throw(error)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_all_users():
     try:
         # Get all users
@@ -132,7 +132,6 @@ def get_all_users():
         return {"users": users}
     except Exception as e:
         frappe.throw(error)
-
 #check who is logged in
 @frappe.whitelist(allow_guest=True)
 def whoami():
