@@ -1,10 +1,9 @@
 import frappe
+import json
 
-error='Authentication required. Please provide valid credentials..'
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def insert_new_trip(employee_id, trip_start_time, trip_start_km,trip_status,trip_start_location = None,job_order=None, trip_type=None, vehicle_number=None):
-    try:
         doc = frappe.get_doc({
             "doctype": "driver trips",
             "employee_id": employee_id,
@@ -19,13 +18,10 @@ def insert_new_trip(employee_id, trip_start_time, trip_start_km,trip_status,trip
         doc.insert()
         frappe.db.commit()
         return doc
-    except Exception as e:
-          frappe.throw(error) 
     
 #api for  closing trip and updatating the odo-meter
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def close_the_trip(trip_id,vehicle_id, trip_end_km=None, trip_end_location=None, trip_status=None, trip_end_time=None):
-    try:
         doc = frappe.get_doc("driver trips", trip_id)
         doc.trip_end_time = trip_end_time
         doc.trip_ending_km = trip_end_km
@@ -34,14 +30,11 @@ def close_the_trip(trip_id,vehicle_id, trip_end_km=None, trip_end_location=None,
         doc.save()
         frappe.db.set_value("Vehicle",vehicle_id, "last_odometer", trip_end_km)
         return doc
-    except Exception as e:
-         frappe.throw(error) 
-
-@frappe.whitelist(allow_guest=True)
+  
+@frappe.whitelist()
 def get_latest_open_trip(employee_id):
-    try:
-       doc = frappe.get_list("driver trips", {"employee_id": employee_id, "custom_trip_status": True}, ["name", "trip_start_time", "custom_starting_km", "trip_start_location", "custom_job_order", "custom_trip_type", "custom_vehicle_number", "custom_trip_status"], order_by="creation desc")
-       if doc:
+        doc = frappe.get_list("driver trips", {"employee_id": employee_id, "custom_trip_status": True}, ["name", "trip_start_time", "custom_starting_km", "trip_start_location", "custom_job_order", "custom_trip_type", "custom_vehicle_number", "custom_trip_status"], order_by="creation desc")
+        if doc:
             latest_trip = doc[0]
             trip_details = {
                 "trip_no": latest_trip.get("name"),
@@ -49,27 +42,20 @@ def get_latest_open_trip(employee_id):
                 "start_time": latest_trip.get("trip_start_time"),
                 "trip_status":latest_trip.get("custom_trip_status")
             }
-            return trip_details
-       else:
-            return {"trip_status": 0}
-    except Exception as e:
-        frappe.throw(error) 
-    
-
+        else: 
+            trip_details =  {"trip_status": 0}
+        return trip_details
+   
 #API for contract  party name.
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def contract_list(enter_name):
- try:
      doc = frappe.db.get_list('Contract',fields=['party_name',],filters={'party_name': ['like', f'{enter_name}%']},as_list=True,) 
      return doc
- except Exception as e:
-  frappe.throw(error) 
     
     
 # API for vehicle no and odometer
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def vehicle_list(vehicle_no,odometer,vehicle_model):
- try:
      doc = frappe.db.get_list('Vehicle',fields=['license_plate','last_odometer','model'],filters={'license_plate': ['like', f'{vehicle_no}%']},as_list=True,) 
      result=[]
      for item in doc:
@@ -80,9 +66,7 @@ def vehicle_list(vehicle_no,odometer,vehicle_model):
             }
             result.append(vehicle_info)
      return result
- except  Exception as e:
-  frappe.throw(error)
-
+ 
 
  
 
