@@ -65,6 +65,7 @@ def vehicle_list(vehicle_no,odometer,vehicle_model):
                 'vehicle_model': item[2]
             }
             result.append(vehicle_info)
+            
      return result
  
 
