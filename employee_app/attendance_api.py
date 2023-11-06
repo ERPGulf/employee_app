@@ -76,6 +76,7 @@ def employee_checkin(employee_code,limit_start,limit_page_length):
         'Employee Checkin',
         fields=['employee_name', 'log_type', 'time'],
         filters={'employee': ['like', f'{employee_code}']},
+        order_by='time desc',
         limit_start=limit_start,
         limit_page_length=limit_page_length
     )
