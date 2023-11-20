@@ -70,7 +70,6 @@ def vehicle_list(vehicle_no,odometer,vehicle_model):
  
 
 @frappe.whitelist()
-
 def employee_checkin(employee_code,limit_start,limit_page_length):
     doc = frappe.db.get_list(
         'Employee Checkin',
@@ -82,7 +81,27 @@ def employee_checkin(employee_code,limit_start,limit_page_length):
     )
     return doc
 
+@frappe.whitelist()
+def error_log(limit_start,limit_page_length):
+    doc = frappe.db.get_list(
+        'Error Log',
+        fields=['method', 'error', 'name','seen'],
+        order_by='modified desc',
+        limit_start=limit_start,
+        limit_page_length=limit_page_length
+    )
+    return doc
 
+@frappe.whitelist()
+def error_log_seen(id):
+    frappe.db.set_value('Error Log',id, 'seen', 1)
+    doc = frappe.db.get_list(
+        'Error Log',
+        fields=['method', 'error', 'name', 'seen'],
+        filters={'name': ['like', f'{id}']},
+        order_by='modified desc',
+    )
+    return doc
 
 
         
