@@ -1,6 +1,7 @@
 import requests
 import json
 import frappe
+from werkzeug.wrappers import Response
 
 error='Authentication required. Please provide valid credentials..'
 
@@ -13,6 +14,11 @@ from frappe.integrations.oauth2 import get_token
 
 @frappe.whitelist(allow_guest=True)
 def generate_custom_token(username, password):
+    
+    #this function can be used for development testing only. not for production. Uncomment the below code to use it.
+    return Response(json.dumps({"message": "Can not be used for production environmet" , "user_count": 0}), status=500, mimetype='application/json')
+    #------------
+    
     try:
         clientID, clientSecret, clientUser = frappe.db.get_value('OAuth Client', {'app_name': 'MobileAPP'}, ['client_id', 'client_secret','user'])
         client_id = clientID  # Replace with your OAuth client ID

@@ -1,6 +1,6 @@
 import frappe
 import json
-
+from datetime import datetime, timedelta
 
 @frappe.whitelist()
 def insert_new_trip(employee_id, trip_start_time, trip_start_km,trip_status,trip_start_location = None,job_order=None, trip_type=None, vehicle_number=None):
@@ -102,6 +102,9 @@ def error_log_seen(id):
         order_by='modified desc',
     )
     return doc
+
+
+
 
 
         
