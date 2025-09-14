@@ -8,7 +8,7 @@ requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
-    "opencv-python-headless==4.9.0.80"
+    "opencv-python-headless>=4.10.0.84"
     # "frappe~=15.0.0" # Installed and managed by bench.
 ]
 
