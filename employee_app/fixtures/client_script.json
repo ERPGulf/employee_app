@@ -1,0 +1,24 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Employee Checkin",
+  "enabled": 1,
+  "modified": "2025-09-14 11:21:58.356088",
+  "module": "Employee app for ERPNext",
+  "name": "checkin-checkout",
+  "script": "frappe.ui.form.on('Employee Checkin', {\nafter_save:function(frm) {\n\t\tvar name=(frm.doc.employee)\n// \t\tconsole.log(name)\n\tfrappe.call({\n\t\tmethod: 'frappe.client.get_value',\n\t\targs: {\n\t\t\t'doctype': 'Employee',\n\t\t\t'filters': { 'name': name},\n\t\t\t'fieldname': [\n\t\t\t\t'checkin'\n\t\t\t\t\n\t\t\t]\n\t\t},\n\t\tcallback: function (r) {\n\t\t\tvar status=(r.message.checkin);\n\t\t\tconsole.log(typeof(status))\n\t\t\tif (status === 0){\n\t\t\t    frappe.call({\n        method: 'frappe.client.set_value',\n        'args': {\n          'doctype': 'Employee',\n          'name': name,\n          fieldname: {\n            'checkin': 1,\n          },\n        }\n      });\n\t\t\t}\n\t\telse{\n\t\t    frappe.call({\n        method: 'frappe.client.set_value',\n        'args': {\n          'doctype': 'Employee',\n          'name': name,\n          fieldname: {\n            'checkin': 0,\n          },\n        }\n      }); \n\t\t}\t\n\t\t\t\n\t\t\t\t\n\t\t\t\n\t\t}\n    });\t\t\n\t}\n})",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Employee",
+  "enabled": 1,
+  "modified": "2025-09-14 11:21:58.309716",
+  "module": "Employee app for ERPNext",
+  "name": "Coordinates",
+  "script": "frappe.ui.form.on('Employee', {\n    refresh: function(frm) {\n        // Ensure the map is initialized\n        if (!frm.map_initialized) {\n            frm.map_initialized = true;\n            frm.fields_dict.custom_location.map_init_callback = function(map) {\n                frm.map_object = map;\n            };\n        }\n    },\n    custom_find_location: function(frm) {\n        const lat = parseFloat(frm.doc.custom_lat);\n        const lng = parseFloat(frm.doc.custom_long);\n\n        if (!isNaN(lat) && !isNaN(lng)) {\n            // Create GeoJSON feature collection\n            const geojson = {\n                type: \"FeatureCollection\",\n                features: [{\n                    type: \"Feature\",\n                    geometry: {\n                        type: \"Point\",\n                        coordinates: [lng, lat]\n                    },\n                    properties: {}\n                }]\n            };\n\n            // Set the value of the Geolocation field\n            frm.set_value('custom_reporting_location', JSON.stringify(geojson));\n\n            // Refresh the field to reflect changes\n            frm.refresh_field('custom_reporting_location');\n\n            // Optionally, update the map view\n            if (frm.map_object) {\n                frm.map_object.eachLayer(layer => {\n                    if (layer instanceof L.Marker) {\n                        frm.map_object.removeLayer(layer);\n                    }\n                });\n                L.geoJSON(geojson).addTo(frm.map_object);\n                frm.map_object.setView([lat, lng], 15);\n            }\n        } else {\n            frappe.msgprint('Please enter valid Latitude and Longitude.');\n        }\n    }\n});\n",
+  "view": "Form"
+ }
+]
