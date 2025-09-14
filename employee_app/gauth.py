@@ -47,6 +47,7 @@ def generate_custom_token(username, password):
             
 @frappe.whitelist(allow_guest=True)
 def generate_custom_token_for_employee( password):
+    # return "hello"
     try:
         clientID, clientSecret, clientUser = frappe.db.get_value('OAuth Client', {'app_name': 'MobileAPP'}, ['client_id', 'client_secret','user'])
         username = clientUser
