@@ -295,32 +295,15 @@ def get_attendance_details(employee_id=None, limit_start=0, limit_page_length=20
 
 
     try:
-        filters = {}
-        if employee_id:
-            filters["employee"] = employee_id
-
-        attendance_list = frappe.db.get_all(
-        "Attendance",
-        fields=[
-            "name",
-            "employee",
-            "employee_name",
-            "status",
-            "attendance_date",
-            "late_entry",
-            "early_exit",
-            "shift",
-            "company",
-            "leave_type",
-            "half_day_status",
-        ],
-        filters=filters,
-        order_by="attendance_date desc",
+        doc = frappe.db.get_list(
+        'Employee Checkin',
+        fields=['name', 'employee_name', 'log_type', 'time','device_id','employee','skip_auto_attendance'],
+        filters={'employee': ['like', f'%{employee_id}%']},
+        order_by='time desc',
         limit_start=limit_start,
         limit_page_length=limit_page_length
     )
-
-        return attendance_list
+        return doc
 
 
     except Exception as e:

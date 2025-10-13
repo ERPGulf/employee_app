@@ -26,7 +26,11 @@ def create_qr_code(doc, method):
 	# if qr_code and frappe.db.exists({"doctype": "File", "file_url": qr_code}):
 	# 	return
 	fields = frappe.get_meta('Employee').fields
-	auth_client = frappe.get_doc("OAuth Client","9octrlffbm")
+	auth_client_name = frappe.db.get_value("OAuth Client", {}, "name")
+	if auth_client_name:
+		auth_client = frappe.get_doc("OAuth Client", auth_client_name)
+	else:
+		frappe.throw("No OAuth Client found")
 	app_name = auth_client.app_name
 
 	app_key= base64.b64encode(app_name.encode()).decode("utf-8")
