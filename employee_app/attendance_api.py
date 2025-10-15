@@ -1,10 +1,12 @@
 import frappe
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,time
 import os
 from frappe.utils import cint
 from mimetypes import guess_type
 from typing import TYPE_CHECKING
+from frappe.utils import get_time
+
 @frappe.whitelist()
 def insert_new_trip(employee_id, trip_start_time, trip_start_km,trip_status,trip_start_location = None,job_order=None, trip_type=None, vehicle_number=None):
         doc = frappe.get_doc({
@@ -56,7 +58,7 @@ def contract_list(enter_name):
      return doc
 
 
-# API for vehicle no and odometer
+
 @frappe.whitelist()
 def vehicle_list(vehicle_no,odometer,vehicle_model):
      doc = frappe.db.get_list('Vehicle',fields=['license_plate','last_odometer','model'],filters={'license_plate': ['like', f'{vehicle_no}%']},as_list=True,)
@@ -225,19 +227,29 @@ def upload_file():
 
 
 @frappe.whitelist()
-def add_log_based_on_employee_field(employee_field_value,timestamp,device_id=None,log_type=None):
+def add_log_based_on_employee_field(employee_field_value, timestamp, device_id=None, log_type=None):
     try:
-        doc=frappe.get_doc({
-            "doctype":"Employee Checkin",
-            "employee":employee_field_value,
-            "time":timestamp,
-            "device_id":device_id,
-            "log_type" :log_type
+
+
+        if log_type:
+            log_type = get_log_type(employee_field_value, timestamp,log_type)
+
+        doc = frappe.get_doc({
+            "doctype": "Employee Checkin",
+            "employee": employee_field_value,
+            "time": timestamp,
+            "device_id": device_id,
+            "log_type": log_type
         })
+
         doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+
         return doc
+
     except Exception as e:
-        return e
+        frappe.log_error(message=str(e), title="Add Log Error")
+        return {"error": str(e)}
 
 
 
@@ -313,3 +325,77 @@ def get_attendance_details(employee_id=None, limit_start=0, limit_page_length=20
             "message": f"An error occurred while fetching attendance: {str(e)}",
             "data": []
         }
+
+
+
+
+def time_diff_in_minutes(time1, time2):
+    """Return absolute difference in minutes between two time/datetime objects"""
+    if isinstance(time1, datetime) and isinstance(time2, datetime):
+        diff = abs((time1 - time2).total_seconds())
+    else:
+        dt1 = datetime.combine(datetime.today(), time1)
+        dt2 = datetime.combine(datetime.today(), time2)
+        diff = abs((dt1 - dt2).total_seconds())
+    return diff / 60
+
+
+def get_shift_info(employee):
+    """Return latest shift_type and shift_location for employee"""
+    sa = frappe.get_all(
+        "Shift Assignment",
+        filters=[["employee", "=", employee], ["docstatus", "=", 1]],
+        fields=["shift_type", "shift_location"],
+        order_by="start_date desc",
+        limit=1
+    )
+    if sa:
+        return sa[0].shift_type, sa[0].shift_location
+    return frappe.db.get_value("Employee", employee, "default_shift"), None
+
+
+def get_shift_tz_for_location(shift_location):
+    """Get timezone for shift location"""
+    if shift_location == "Beirut, Lebanon":
+        return pytz.timezone("Asia/Beirut")
+    elif shift_location == "Riyadh, Saudi Arabia":
+        return pytz.timezone("Asia/Riyadh")
+    return pytz.UTC
+
+
+from frappe.utils import getdate, get_time, flt, now_datetime
+@frappe.whitelist()
+def get_log_type(employee, punch_time,log_type):
+    """Determine log type (IN, OUT, Late Entry, Early Exit considering shift)"""
+    punch_dt = punch_time
+
+    shift_type, shift_location = get_shift_info(employee)
+
+
+
+    if not shift_type:
+        return "IN" if log_type == "IN" else "OUT"
+
+    shift_doc = frappe.get_doc("Shift Type", shift_type)
+
+    start_time = get_time(shift_doc.start_time)
+    end_time = get_time(shift_doc.end_time)
+    late_grace = int(shift_doc.late_entry_grace_period or 0)
+    early_grace = int(shift_doc.early_exit_grace_period or 0)
+
+    punch_time_only = get_time(punch_dt)
+
+
+    if log_type == "IN":
+        diff = time_diff_in_minutes(punch_time_only, start_time)
+        if punch_time_only > start_time and diff > late_grace:
+            return "Late Entry"
+        return "IN"
+
+    elif log_type == "OUT":
+        diff = time_diff_in_minutes(end_time, punch_time_only)
+        if punch_time_only < end_time and diff > early_grace:
+            return "Early Exit"
+        return "OUT"
+
+    return "IN"
