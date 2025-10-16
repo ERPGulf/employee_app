@@ -309,9 +309,9 @@ def get_attendance_details(employee_id=None, limit_start=0, limit_page_length=20
     try:
         doc = frappe.db.get_list(
         'Employee Checkin',
-        fields=['name', 'employee_name', 'log_type', 'time','device_id','employee','skip_auto_attendance'],
+        fields=['name', 'employee_name', 'log_type', 'time','device_id','employee','skip_auto_attendance',"creation"],
         filters={'employee': ['like', f'%{employee_id}%']},
-        order_by='time desc',
+        order_by='creation desc',
         limit_start=limit_start,
         limit_page_length=limit_page_length
     )
@@ -399,3 +399,11 @@ def get_log_type(employee, punch_time,log_type):
         return "OUT"
 
     return "IN"
+
+
+
+
+
+def employee_checkin_handler(doc, method):
+    if doc.log_type in ["OUT", "Early Exit"]:
+        frappe.db.set_value("Employee", doc.employee, "custom_in", 0)
