@@ -404,3 +404,7 @@ def get_log_type(employee, punch_time,log_type):
 def employee_checkin_handler(doc, method):
     if doc.log_type in ["OUT", "Early Exit"]:
         frappe.db.set_value("Employee", doc.employee, "custom_in", 0)
+    if doc.log_type in ["IN", "Late Entry"]:
+        frappe.db.set_value("Employee", doc.employee, "custom_in", 1)
+
+
