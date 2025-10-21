@@ -6,7 +6,7 @@ from frappe.utils import cint
 from mimetypes import guess_type
 from typing import TYPE_CHECKING
 from frappe.utils import get_time
-
+from frappe.utils import nowdate
 @frappe.whitelist()
 def insert_new_trip(employee_id, trip_start_time, trip_start_km,trip_status,trip_start_location = None,job_order=None, trip_type=None, vehicle_number=None):
         doc = frappe.get_doc({
@@ -408,3 +408,87 @@ def employee_checkin_handler(doc, method):
         frappe.db.set_value("Employee", doc.employee, "custom_in", 1)
 
 
+
+import frappe
+@frappe.whitelist()
+def get_expense_claims(employee=None, limit=10):
+    """
+    API to fetch Expense Claim details
+    """
+    filters = {}
+    if employee:
+        filters["employee"] = employee
+
+    expense_claims = frappe.get_all(
+        "Expense Claim",
+        filters=filters,
+        fields=["name as id", "employee_name"],
+        limit=limit,
+        order_by="creation desc"
+    )
+
+
+    result = []
+    for claim in expense_claims:
+        expenses = frappe.get_all(
+            "Expense Claim Detail",
+            filters={"parent": claim.id},
+            fields=["expense_date","expense_type", "description", "amount"]
+        )
+
+
+        for e in expenses:
+            result.append({
+                "id": claim.id,
+                "employee_name": claim.employee_name,
+                "expense_date": e.expense_date,
+                "expense_type":e.expense_type,
+                "description": e.description,
+                "amount": e.amount
+            })
+
+    return result
+
+
+
+
+
+
+
+
+@frappe.whitelist(allow_guest=False)
+def create_expense_claim(employee, expense_date=None, amount=None, expense_type=None, description=None):
+    try:
+        if not employee or not amount or not expense_type:
+            frappe.throw("Employee, Amount, and Expense Type are required")
+
+
+        doc = frappe.new_doc("Expense Claim")
+        doc.employee = employee
+        doc.company = frappe.db.get_default("company")
+        doc.approval_status = "Approved"
+
+        doc.append("expenses", {
+            "expense_date": expense_date or nowdate(),
+            "expense_type": expense_type,
+            "amount": amount,
+            "description": description
+        })
+
+
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+        return {
+
+                "id": doc.name,
+                "employee": employee,
+                "expense_date": expense_date or nowdate(),
+                "amount": int(amount),
+                "expense_type": expense_type,
+                "description": description
+
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Expense Claim API Error")
+        return {"error": str(e)}

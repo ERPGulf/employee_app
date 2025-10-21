@@ -21,7 +21,7 @@ fixtures = [
 doc_events = {
     "Employee": {
         "on_update": "employee_app.user_qa_code.create_qr_code",
-        "on_trash": "employee_app.delete_qr_code_file"
+        "on_trash": "employee_app.user_qa_code.delete_qr_code_file"
     },
     "Employee Checkin": {
         "after_insert": "employee_app.attendance_api.employee_checkin_handler"
