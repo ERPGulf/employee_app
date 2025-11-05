@@ -7,6 +7,10 @@ from mimetypes import guess_type
 from typing import TYPE_CHECKING
 from frappe.utils import get_time
 from frappe.utils import nowdate
+from werkzeug.wrappers import Response
+from frappe import _
+from frappe.utils import nowdate
+
 @frappe.whitelist()
 def insert_new_trip(employee_id, trip_start_time, trip_start_km,trip_status,trip_start_location = None,job_order=None, trip_type=None, vehicle_number=None):
         doc = frappe.get_doc({
@@ -411,7 +415,7 @@ def employee_checkin_handler(doc, method):
 
 import frappe
 @frappe.whitelist()
-def get_expense_claims(employee=None, limit=10):
+def get_expense_claims(employee=None, limit=100):
     """
     API to fetch Expense Claim details
     """
@@ -422,7 +426,7 @@ def get_expense_claims(employee=None, limit=10):
     expense_claims = frappe.get_all(
         "Expense Claim",
         filters=filters,
-        fields=["name as id", "employee_name"],
+        fields=["name as id", "employee_name","approval_status"],
         limit=limit,
         order_by="creation desc"
     )
@@ -435,6 +439,15 @@ def get_expense_claims(employee=None, limit=10):
             filters={"parent": claim.id},
             fields=["expense_date","expense_type", "description", "amount"]
         )
+        attachments = frappe.get_all(
+            "File",
+            filters={
+                "attached_to_doctype": "Expense Claim",
+                "attached_to_name": claim.id
+            },
+            fields=["file_name", "file_url"]
+        )
+        file_urls =attachments[0].file_url if attachments else None
 
 
         for e in expenses:
@@ -444,7 +457,9 @@ def get_expense_claims(employee=None, limit=10):
                 "expense_date": e.expense_date,
                 "expense_type":e.expense_type,
                 "description": e.description,
-                "amount": e.amount
+                "amount": e.amount,
+                "status":claim.approval_status,
+                "file_url": file_urls
             })
 
     return result
@@ -452,15 +467,11 @@ def get_expense_claims(employee=None, limit=10):
 
 
 
-
-
-
-
 @frappe.whitelist(allow_guest=False)
-def create_expense_claim(employee, expense_date=None, amount=None, expense_type=None, description=None):
+def create_expense_claim(employee, expense_date=None, amount=None, expense_type=None, description=None, file_name=None):
     try:
         if not employee or not amount or not expense_type:
-            frappe.throw("Employee, Amount, and Expense Type are required")
+            frappe.throw(_("Employee, Amount, and Expense Type are required"))
 
 
         doc = frappe.new_doc("Expense Claim")
@@ -475,20 +486,73 @@ def create_expense_claim(employee, expense_date=None, amount=None, expense_type=
             "description": description
         })
 
-
         doc.insert(ignore_permissions=True)
-        frappe.db.commit()
-        return {
+        file_urls = []
+        if frappe.request.files:
+            # Attach uploaded file(s) to this Expense Claim
+            frappe.form_dict.doctype = "Expense Claim"
+            frappe.form_dict.docname = doc.name
+            frappe.form_dict.is_private = 1
 
-                "id": doc.name,
-                "employee": employee,
-                "expense_date": expense_date or nowdate(),
-                "amount": int(amount),
-                "expense_type": expense_type,
-                "description": description
+            upload_func = frappe.get_attr("employee_app.attendance_api.upload_file")
+            file_urls = upload_func()
+
+
+
+        data = {
+            "id": doc.name,
+            "employee": employee,
+            "expense_date": expense_date or nowdate(),
+            "amount": float(amount),
+            "expense_type": expense_type,
+            "description": description,
+            "status": doc.approval_status,
+            "file_url": file_urls
 
         }
 
+        return Response(json.dumps(data), status=200, mimetype="application/json")
+
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Expense Claim API Error")
-        return {"error": str(e)}
+        return Response(json.dumps({"error": str(e)}), status=500, mimetype="application/json")
+
+
+@frappe.whitelist(allow_guest=False)
+def create_leave_application(employee, leave_type, from_date, to_date, posting_date=None,acknowledgement_policy=None, reason=None):
+    """Create Leave Application from API"""
+    try:
+        doc = frappe.get_doc({
+            "doctype": "Leave Application",
+            "employee": employee,
+            "leave_type": leave_type,
+            "from_date": from_date,
+            "to_date": to_date,
+            "posting_date": posting_date or frappe.utils.nowdate(),
+            "reason": reason or "",
+            "company": frappe.defaults.get_user_default("Company"),
+            "custom_acknowledgement_policy1":acknowledgement_policy if acknowledgement_policy else None,
+
+        })
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+
+        data= {
+                "id": doc.name,
+                "employee": doc.employee,
+                "leave_type": doc.leave_type,
+                "from_date": doc.from_date,
+                "to_date": doc.to_date,
+                "posting_date": doc.posting_date,
+                "status": doc.status,
+                "agreement":doc.custom_agreement
+            }
+
+        return Response(
+            json.dumps(data), status=200, mimetype="application/json"
+        )
+    except Exception as e:
+        frappe.log_error(message=str(e), title="Leave API Error")
+        return Response(
+            json.dumps(e), status=500, mimetype="application/json"
+        )

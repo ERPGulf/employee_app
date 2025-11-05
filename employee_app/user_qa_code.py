@@ -72,6 +72,12 @@ def create_qr_code(doc, method):
 			value = full_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
 
+			full_name = "Photo: " + str(doc.custom_photo_)
+			tag = bytes([1]).hex()
+			length = bytes([len(full_name.encode('utf-8'))]).hex()
+			value = full_name.encode('utf-8').hex()
+			tlv_array.append(''.join([tag, length, value]))
+
 			full_name = "User_id: " + str(doc.user_id)
 			tag = bytes([1]).hex()
 			length = bytes([len(full_name.encode('utf-8'))]).hex()
