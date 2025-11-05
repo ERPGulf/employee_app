@@ -48,7 +48,7 @@ def create_qr_code(doc, method):
 			tlv_array = []
 
 
-			company_name = "Company: " + frappe.db.get_value('Company',doc.company,'company_name')
+			company_name = " Company: " + frappe.db.get_value('Company',doc.company,'company_name')
 			if not company_name:
 				frappe.throw(_('Company name missing for {} in the company document'.format(doc.company)))
 
@@ -66,25 +66,25 @@ def create_qr_code(doc, method):
 			value = user_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
 
-			full_name = "Full_Name: " + str(doc.first_name + "  " + doc.last_name)
+			full_name = " Full_Name: " + str(doc.first_name + "  " + doc.last_name)
 			tag = bytes([1]).hex()
 			length = bytes([len(full_name.encode('utf-8'))]).hex()
 			value = full_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
 
-			full_name = "Photo: " + str(doc.custom_photo_)
+			full_name = " Photo: " + str(doc.custom_photo_)
 			tag = bytes([1]).hex()
 			length = bytes([len(full_name.encode('utf-8'))]).hex()
 			value = full_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
 
-			full_name = "User_id: " + str(doc.user_id)
+			full_name = " User_id: " + str(doc.user_id)
 			tag = bytes([1]).hex()
 			length = bytes([len(full_name.encode('utf-8'))]).hex()
 			value = full_name.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
 
-			api_url = "API: " +  frappe.local.conf.host_name
+			api_url = " API: " +  frappe.local.conf.host_name
 			if not api_url:
 				frappe.throw(_('API URL is missing for {} in the  document'))
 
@@ -92,7 +92,7 @@ def create_qr_code(doc, method):
 			length = bytes([len(api_url.encode('utf-8'))]).hex()
 			value = api_url.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
-			key = "App_key: " +  str(app_key)
+			key = " App_key: " +  str(app_key)
 			tag = bytes([1]).hex()
 
 			value = key.encode('utf-8').hex()
