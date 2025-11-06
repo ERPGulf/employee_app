@@ -15,6 +15,7 @@ fixtures = [
         "dt": "Client Script",
         "filters": {"module": "Employee app for ERPNext"},
     },
+    {"dt": "Leave Type", "filters": [["name", "in", ["Annual", "Remote", "Out Of Office"]]]}
 ]
 
 
