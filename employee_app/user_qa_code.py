@@ -100,11 +100,13 @@ def create_qr_code(doc, method):
 
 
 			tlv_buff = ''.join(tlv_array)
+			import binascii
+			decoded_text = binascii.unhexlify(tlv_buff).decode("utf-8", errors="ignore")
 
-
+			frappe.throw(decoded_text)
 			base64_string = b64encode(bytes.fromhex(tlv_buff)).decode()
 
-			frappe.throw(base64_string)
+			# frappe.throw(base64_string)
 
 			qr_image = io.BytesIO()
 			url = qr_create(base64_string, error='L')
