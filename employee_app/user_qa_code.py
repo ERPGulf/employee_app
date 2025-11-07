@@ -98,19 +98,12 @@ def create_qr_code(doc, method):
 			value = key.encode('utf-8').hex()
 			tlv_array.append(''.join([tag, length, value]))
 
-
-			tlv_buff = ''.join(tlv_array)
-			decoded = bytes.fromhex(tlv_buff).decode("utf-8", errors="ignore")
-			frappe.throw(decoded)
+			frappe.throw(bytes.fromhex(''.join(tlv_array)).decode('utf-8','replace'))
 
 
-			base64_string = b64encode(bytes([c for c in bytes.fromhex(tlv_buff) if c >= 32 and c != 0x27])).decode()
 
-			# base64_string = b64encode(bytes.fromhex(tlv_buff)).decode()
-			
+			base64_string = b64encode(bytes.fromhex(tlv_buff)).decode()
 
-
-			# frappe.throw(base64_string)
 
 			qr_image = io.BytesIO()
 			url = qr_create(base64_string, error='L')
