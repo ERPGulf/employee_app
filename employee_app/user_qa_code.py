@@ -104,7 +104,9 @@ def create_qr_code(doc, method):
 			decoded_text = binascii.unhexlify(tlv_buff).decode("utf-8", errors="ignore")
 
 			frappe.throw(decoded_text)
-			base64_string = b64encode(bytes.fromhex(tlv_buff)).decode()
+			# base64_string = b64encode(bytes.fromhex(tlv_buff)).decode()
+			base64_string = b64encode(bytes.fromhex(re.sub(r'[^0-9A-Fa-f]', '', tlv_buff))).decode()
+
 
 			# frappe.throw(base64_string)
 
