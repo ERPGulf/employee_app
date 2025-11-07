@@ -104,12 +104,12 @@ def create_qr_code(doc, method):
 			cleaned = re.sub(r"[^\x20-\x7E]", "", bytes.fromhex(''.join(tlv_array)).decode('utf-8','replace')).replace("'", "").strip()
 
 			
-			frappe.throw(cleaned)
+			# frappe.throw(cleaned)
 
 			base64_string = b64encode(cleaned.encode()).decode()
 
 
-			base64_string = b64encode(bytes.fromhex(tlv_buff)).decode()
+			# base64_string = b64encode(bytes.fromhex(tlv_buff)).decode()
 
 
 			qr_image = io.BytesIO()
