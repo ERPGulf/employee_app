@@ -104,7 +104,7 @@ def create_qr_code(doc, method):
 
 			base64_string = b64encode(bytes.fromhex(tlv_buff)).decode()
 
-
+			frappe.throw(base64_string)
 
 			qr_image = io.BytesIO()
 			url = qr_create(base64_string, error='L')
