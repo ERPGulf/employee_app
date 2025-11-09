@@ -102,7 +102,7 @@ def create_qr_code(doc, method):
 
 			import re
 			# cleaned = re.sub(r"[^\x20-\x7E]", "", bytes.fromhex(''.join(tlv_array)).decode('utf-8','replace')).replace("'", "").strip()
-			cleaned = re.sub(r"[^A-Za-z0-9 :/\.=\-]+@", " ", bytes.fromhex(''.join(tlv_array)).decode('utf-8','replace')).strip()
+			cleaned = re.sub(r"[^A-Za-z0-9 :/\.=\-]+@&", " ", bytes.fromhex(''.join(tlv_array)).decode('utf-8','replace')).strip()
 
 
 			
