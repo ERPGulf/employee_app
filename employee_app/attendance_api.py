@@ -286,22 +286,65 @@ def employee(employee_code=None, custom_in=None):
 
 
 
+
 @frappe.whitelist()
 def get_employee_data(employee_id=None):
-    if employee_id:
-        data = frappe.db.get_value(
-            "Employee",
-            employee_id,
-            ["name", "first_name", "custom_reporting_location", "custom_reporting_radius", "custom_in"],
-            as_dict=True
+    try:
+        if employee_id:
+
+            data = frappe.db.get_value(
+                "Employee",
+                employee_id,
+                ["custom_employee_location", "name", "first_name", "custom_in"],
+                as_dict=True
+            )
+
+            if not data:
+                return Response(
+                    json.dumps({"error": "Employee not found"}),
+                    status=404,
+                    mimetype="application/json"
+                )
+
+
+            location = None
+            if data.get("custom_employee_location"):
+                location = frappe.db.get_value(
+                    "Employee Location",
+                    data["custom_employee_location"],
+                    ["reporting_location", "reporting_radius"],
+                    as_dict=True
+                )
+
+
+            result = {
+                "name": data.get("name"),
+                "first_name": data.get("first_name"),
+                "custom_reporting_location": location.get("reporting_location") if location else None,
+                "custom_reporting_radius": location.get("reporting_radius") if location else None,
+                "custom_in": data.get("custom_in"),
+            }
+
+        else:
+
+            employees = frappe.get_all("Employee", pluck="name")
+            result = employees
+
+
+        return Response(
+            json.dumps(result),
+            status=200,
+            mimetype="application/json"
         )
 
-        return data or {}
+    except Exception as e:
 
-    else:
-        employees = frappe.get_all("Employee", pluck="name")
-        return employees
-
+        frappe.log_error(message=frappe.get_traceback(), title="get_employee_data Error")
+        return Response(
+            json.dumps({"error": str(e)}),
+            status=500,
+            mimetype="application/json"
+        )
 
 
 @frappe.whitelist()
