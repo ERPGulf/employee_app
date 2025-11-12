@@ -232,11 +232,10 @@ def upload_file():
 
 @frappe.whitelist()
 def add_log_based_on_employee_field(employee_field_value, timestamp, device_id=None, log_type=None):
+    """Add Employee Checkin log entry"""
     try:
-
-
         if log_type:
-            log_type = get_log_type(employee_field_value, timestamp,log_type)
+            log_type = get_log_type(employee_field_value, timestamp, log_type)
 
         doc = frappe.get_doc({
             "doctype": "Employee Checkin",
@@ -252,9 +251,8 @@ def add_log_based_on_employee_field(employee_field_value, timestamp, device_id=N
         return doc
 
     except Exception as e:
-        frappe.log_error(message=str(e), title="Add Log Error")
+        frappe.log_error(frappe.get_traceback(), "Add Log Error")
         return {"error": str(e)}
-
 
 
 
@@ -366,52 +364,73 @@ def get_shift_tz_for_location(shift_location):
         return pytz.timezone("Asia/Riyadh")
     return pytz.UTC
 
+@frappe.whitelist(allow_guest=True)
+def is_employee_shift_enabled(employee=None):
+    """Check if Employee Shift setting is enabled for the given employee"""
+    try:
+        if not employee:
+            return 0
+
+        shift_enabled = frappe.db.get_value("Employee", employee, "custom_employee_shift")
+        return shift_enabled or 0
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Employee Shift Setting Fetch Error")
+        return 0
+
+
 
 from frappe.utils import getdate, get_time, flt, now_datetime
 @frappe.whitelist()
-def get_log_type(employee, punch_time,log_type):
-    """Determine log type (IN, OUT, Late Entry, Early Exit considering shift)"""
-    punch_dt = punch_time
+def get_log_type(employee, punch_time, log_type):
+    """Determine log type (IN, OUT, Late Entry, Early Exit) considering shift"""
+    try:
 
-    shift_type, shift_location = get_shift_info(employee)
+        punch_dt = frappe.utils.get_datetime(punch_time)
 
+        if not is_employee_shift_enabled(employee):
+            return log_type
 
+        shift_type, shift_location = get_shift_info(employee)
+        if not shift_type:
+            return log_type or "IN"
 
-    if not shift_type:
-        return "IN" if log_type == "IN" else "OUT"
+        shift_doc = frappe.get_doc("Shift Type", shift_type)
 
-    shift_doc = frappe.get_doc("Shift Type", shift_type)
+        start_time = get_time(shift_doc.start_time)
+        end_time = get_time(shift_doc.end_time)
+        late_grace = int(shift_doc.late_entry_grace_period or 0)
+        early_grace = int(shift_doc.early_exit_grace_period or 0)
 
-    start_time = get_time(shift_doc.start_time)
-    end_time = get_time(shift_doc.end_time)
-    late_grace = int(shift_doc.late_entry_grace_period or 0)
-    early_grace = int(shift_doc.early_exit_grace_period or 0)
+        punch_time_only = get_time(punch_dt)
 
-    punch_time_only = get_time(punch_dt)
+        if log_type == "IN":
+            diff = time_diff_in_minutes(punch_time_only, start_time)
+            if punch_time_only > start_time and diff > late_grace:
+                return "Late Entry"
+            return "IN"
 
+        elif log_type == "OUT":
+            diff = time_diff_in_minutes(end_time, punch_time_only)
+            if punch_time_only < end_time and diff > early_grace:
+                return "Early Exit"
+            return "OUT"
 
-    if log_type == "IN":
-        diff = time_diff_in_minutes(punch_time_only, start_time)
-        if punch_time_only > start_time and diff > late_grace:
-            return "Late Entry"
-        return "IN"
+        return log_type or "IN"
 
-    elif log_type == "OUT":
-        diff = time_diff_in_minutes(end_time, punch_time_only)
-        if punch_time_only < end_time and diff > early_grace:
-            return "Early Exit"
-        return "OUT"
-
-    return "IN"
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Get Log Type Error")
+        return log_type or "IN"
 
 
 def employee_checkin_handler(doc, method):
-    if doc.log_type in ["OUT", "Early Exit"]:
-        frappe.db.set_value("Employee", doc.employee, "custom_in", 0)
-    if doc.log_type in ["IN", "Late Entry"]:
-        frappe.db.set_value("Employee", doc.employee, "custom_in", 1)
-
-
+    """Update Employee custom_in flag based on checkin type"""
+    try:
+        if doc.log_type in ["OUT", "Early Exit"]:
+            frappe.db.set_value("Employee", doc.employee, "custom_in", 0)
+        elif doc.log_type in ["IN", "Late Entry"]:
+            frappe.db.set_value("Employee", doc.employee, "custom_in", 1)
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Employee Checkin Handler Error")
 
 import frappe
 @frappe.whitelist()
