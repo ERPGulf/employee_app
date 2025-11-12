@@ -11,7 +11,10 @@
   "long",
   "find_location",
   "reporting_location",
-  "reporting_radius"
+  "reporting_radius",
+  "column_break_buer",
+  "cost_center",
+  "project"
  ],
  "fields": [
   {
@@ -44,12 +47,28 @@
    "fieldname": "reporting_radius",
    "fieldtype": "Data",
    "label": "Reporting Radius"
+  },
+  {
+   "fieldname": "column_break_buer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-12 09:52:30.318488",
+ "modified": "2025-11-12 11:26:44.685138",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Employee Location",
