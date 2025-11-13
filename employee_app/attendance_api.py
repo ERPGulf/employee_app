@@ -295,7 +295,7 @@ def get_employee_data(employee_id=None):
             data = frappe.db.get_value(
                 "Employee",
                 employee_id,
-                ["custom_employee_location", "name", "first_name", "custom_in"],
+                ["custom_employee_location", "name", "employee_name", "custom_in"],
                 as_dict=True
             )
 
@@ -319,7 +319,7 @@ def get_employee_data(employee_id=None):
 
             result = {
                 "name": data.get("name"),
-                "first_name": data.get("first_name"),
+                "first_name": data.get("employee_name"),
                 "custom_reporting_location": location.get("reporting_location") if location else None,
                 "custom_reporting_radius": location.get("reporting_radius") if location else None,
                 "custom_in": data.get("custom_in"),
@@ -331,11 +331,7 @@ def get_employee_data(employee_id=None):
             result = employees
 
 
-        return Response(
-            json.dumps(result),
-            status=200,
-            mimetype="application/json"
-        )
+        return result
 
     except Exception as e:
 
