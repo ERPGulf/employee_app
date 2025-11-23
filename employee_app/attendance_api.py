@@ -614,3 +614,74 @@ def create_leave_application(employee, leave_type, from_date, to_date, posting_d
         return Response(
             json.dumps(e), status=500, mimetype="application/json"
         )
+
+
+
+
+
+
+import datetime
+import frappe
+
+@frappe.whitelist(allow_guest=True)
+def get_total_hours(employee, date):
+
+    try:
+        date_obj = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+    except:
+
+        date_obj = datetime.datetime.strptime(date, "%d-%m-%Y").date()
+
+    start_datetime = datetime.datetime.combine(date_obj, datetime.time.min)
+    end_datetime = datetime.datetime.combine(date_obj, datetime.time.max)
+
+    checkins = frappe.get_all(
+        "Employee Checkin",
+        filters={
+            "employee": employee,
+            "time": ["between", [start_datetime, end_datetime]]
+        },
+        fields=["time", "log_type"],
+        order_by="time asc"
+    )
+
+    total_hours = 0
+    last_in = None
+
+    for c in checkins:
+        if c.log_type == "IN":
+            last_in = c.time
+        elif c.log_type == "OUT" and last_in:
+            diff = (c.time - last_in).total_seconds() / 3600
+            total_hours += diff
+            last_in = None
+
+
+    hours = int(total_hours)
+    minutes = int((total_hours - hours) * 60)
+
+    return f"{hours:02d}:{minutes:02d}"
+
+
+@frappe.whitelist(allow_guest=True)
+def get_monthly_hours(employee, month, year):
+    import calendar
+
+    month = int(month)
+    year = int(year)
+
+    total_minutes = 0
+    days = calendar.monthrange(year, month)[1]
+
+    for day in range(1, days + 1):
+        date_str = f"{year}-{month:02d}-{day:02d}"
+        daily_hours = get_total_hours(employee, date_str)  # returns "HH:MM"
+
+        h, m = map(int, daily_hours.split(":"))
+        total_minutes += h * 60 + m
+
+
+    final_hours = total_minutes // 60
+    final_minutes = total_minutes % 60
+
+    return f"{final_hours:02d}:{final_minutes:02d}"

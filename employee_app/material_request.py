@@ -1003,3 +1003,133 @@ def get_stock(item_code, warehouse, to):
         as_dict=True
     )
 
+
+
+@frappe.whitelist(allow_guest=False)
+def create_material_request(date, warehouse, items):
+
+
+    try:
+
+        if isinstance(items, str):
+            items = json.loads(items)
+
+        doc = frappe.get_doc({
+            "doctype": "Material Request",
+            "material_request_type": "Purchase",
+            "transaction_date": date,
+            "set_warehouse": warehouse,
+            "items": []
+        })
+
+        # Add items
+        for it in items:
+            doc.append("items", {
+                "item_code": it.get("item_code"),
+                "qty": it.get("qty", 1),
+                "schedule_date": it.get("schedule_date", date),
+                "uom":it.get("uom"),
+                "warehouse": warehouse
+            })
+
+        doc.insert(ignore_permissions=True)
+        doc.save()
+
+        # Prepare minimal response
+        response = {
+            "id": doc.name,
+            "date": doc.transaction_date,
+            "warehouse": doc.set_warehouse,
+            "purpose": doc.material_request_type,
+            "items": [
+                {
+                    "item_code": d.item_code,
+                    "qty": d.qty,
+                    "schedule_date": d.schedule_date
+                }
+                for d in doc.items
+            ]
+        }
+
+        return Response(
+            json.dumps({"data":response}),
+            status=200,
+            mimetype="application/json"
+        )
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Material Request API Error")
+        return Response(
+            json.dumps({"error":str(e)}),
+            status=500,
+            mimetype="application/json"
+        )
+
+
+
+@frappe.whitelist(allow_guest=False)
+def list_material_requests(id=None):
+    """
+    List material requests
+    If id is passed → return single request
+    If id is not passed → return all
+    """
+
+    try:
+
+
+        if id:
+            mr_list = frappe.get_all(
+                "Material Request",
+                filters={"name": id},
+                fields=["name", "transaction_date", "set_warehouse", "material_request_type"]
+            )
+        else:
+
+            mr_list = frappe.get_all(
+                "Material Request",
+                fields=["name", "transaction_date", "set_warehouse", "material_request_type"],
+                order_by="creation desc"
+            )
+
+        result = []
+
+        for d in mr_list:
+
+
+            items = frappe.get_all(
+                "Material Request Item",
+                filters={"parent": d.name},
+                fields=["item_code", "qty", "schedule_date"]
+            )
+
+
+            clean_items = []
+            for it in items:
+                clean_items.append({
+                    "item_code": it.item_code,
+                    "qty": it.qty,
+                    "schedule_date": str(it.schedule_date) if it.schedule_date else None
+                })
+
+            result.append({
+                "id": d.name,
+                "date": str(d.transaction_date),
+                "warehouse": d.set_warehouse,
+                "purpose": d.material_request_type,
+                "items": clean_items
+            })
+
+        return Response(
+            json.dumps({"data": result}),
+            status=200,
+            mimetype="application/json"
+        )
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "List Material Request API Error")
+        return Response(
+            json.dumps({"error": str(e)}),
+            status=500,
+            mimetype="application/json"
+        )
