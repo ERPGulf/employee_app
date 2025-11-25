@@ -343,8 +343,9 @@ def get_employee_data(employee_id=None):
         )
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_attendance_details(employee_id=None, limit_start=0, limit_page_length=20):
+    return frappe.session.user
 
     try:
         doc = frappe.db.get_list(
