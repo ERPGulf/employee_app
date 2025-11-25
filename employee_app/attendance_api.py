@@ -343,7 +343,7 @@ def get_employee_data(employee_id=None):
         )
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def get_attendance_details(employee_id=None, limit_start=0, limit_page_length=20):
     return "testing"
 
