@@ -230,7 +230,7 @@ def upload_file():
 
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def add_log_based_on_employee_field(employee_field_value, timestamp, device_id=None, log_type=None):
     """Add Employee Checkin log entry"""
     try:
