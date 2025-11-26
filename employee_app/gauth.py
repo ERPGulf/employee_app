@@ -323,25 +323,25 @@ _gauth_instance = GAuth()
 
 
 # Expose methods as module-level functions for Frappe whitelist decorator
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def getToken2():
     """Get token method (placeholder)."""
     return _gauth_instance.get_token2()
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def generate_custom_token(username, password):
     """Generate custom token for a user."""
     return _gauth_instance.generate_custom_token(username, password)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def generate_custom_token_for_employee(password):
     """Generate custom token for employee."""
     return _gauth_instance.generate_custom_token_for_employee(password)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def whoami():
     """Get current session user."""
     return _gauth_instance.whoami()

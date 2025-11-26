@@ -113,18 +113,14 @@ def error_log_seen(id):
     return doc
 
 
-
-
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def list_employee(employee_code=None):
     doc=frappe.get_all("Employee",fields=["name"],filters={"name":employee_code} if employee_code else None)
     return doc
 
 
 
-@frappe.whitelist(allow_guest=True)
-
-
+@frappe.whitelist()
 def Employee_Checkin(employee_checkin, fieldname=None, fieldvalue=None, limit_start=0, limit_page_length=10):
     if fieldname and fieldvalue is not None:
         frappe.db.set_value("Employee Checkin", employee_checkin, fieldname, fieldvalue)
@@ -141,7 +137,7 @@ def Employee_Checkin(employee_checkin, fieldname=None, fieldvalue=None, limit_st
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def upload_file():
 
     user = None
@@ -230,7 +226,7 @@ def upload_file():
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def add_log_based_on_employee_field(employee_field_value, timestamp, device_id=None, log_type=None):
     """Add Employee Checkin log entry"""
     try:
@@ -403,7 +399,7 @@ def get_shift_tz_for_location(shift_location):
         return pytz.timezone("Asia/Riyadh")
     return pytz.UTC
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def is_employee_shift_enabled(employee=None):
     """Check if Employee Shift setting is enabled for the given employee"""
     try:
@@ -525,7 +521,7 @@ def get_expense_claims(employee=None, limit=100):
 
 
 
-@frappe.whitelist(allow_guest=False)
+@frappe.whitelist()
 def create_expense_claim(employee, expense_date=None, amount=None, expense_type=None, description=None, file_name=None):
     try:
         if not employee or not amount or not expense_type:
@@ -576,7 +572,7 @@ def create_expense_claim(employee, expense_date=None, amount=None, expense_type=
         return Response(json.dumps({"error": str(e)}), status=500, mimetype="application/json")
 
 
-@frappe.whitelist(allow_guest=False)
+@frappe.whitelist()
 def create_leave_application(employee, leave_type, from_date, to_date, posting_date=None,acknowledgement_policy=None, reason=None):
     """Create Leave Application from API"""
     try:
@@ -623,7 +619,7 @@ def create_leave_application(employee, leave_type, from_date, to_date, posting_d
 import datetime
 import frappe
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_total_hours(employee, date):
 
     try:
@@ -663,7 +659,7 @@ def get_total_hours(employee, date):
     return f"{hours:02d}:{minutes:02d}"
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_monthly_hours(employee, month, year):
     import calendar
 
