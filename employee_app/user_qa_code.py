@@ -118,6 +118,9 @@ def create_qr_code(doc, method):
 			cleaned = re.sub(r"^G\s+(?=Company:)", "", cleaned)
 			cleaned = re.sub(r"([A-Za-z0-9])\s*\.\s+(?=[A-Z_])", r"\1 ", cleaned)
 			cleaned = re.sub(r"\s+\.\s+", " ", cleaned)
+			cleaned = re.sub(r"([A-Za-z0-9])\s*-\s+(?=[A-Z_])", r"\1 ", cleaned)
+			cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+   
 
 			# frappe.throw(cleaned)
 
