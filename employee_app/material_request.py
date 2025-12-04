@@ -828,17 +828,19 @@ def get_item_uom(item_code):
             mimetype="application/json"
         )
 
+
 @frappe.whitelist(allow_guest=True)
 def list_items_search(item=None, limit=None, offset=0):
     try:
         filters = {}
         or_filters = {}
 
+        # Search only when user types something
         if item:
-
+            # Match items starting with the typed text
             or_filters = {
-                "name": ["like", f"%{item}%"],
-                "item_name": ["like", f"%{item}%"]
+                "item_name": ["like", f"{item}%"],
+                "item_code": ["like", f"{item}%"]
             }
 
         items = frappe.get_all(
@@ -855,12 +857,14 @@ def list_items_search(item=None, limit=None, offset=0):
             status=200,
             mimetype="application/json"
         )
+
     except Exception as e:
         return Response(
             json.dumps({"error": str(e)}),
             status=500,
             mimetype="application/json"
         )
+
 
 
 

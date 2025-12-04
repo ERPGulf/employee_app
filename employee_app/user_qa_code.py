@@ -115,7 +115,9 @@ def create_qr_code(doc, method):
 				bytes.fromhex(''.join(tlv_array)).decode('utf-8','replace')
 			).strip()
 
-
+			cleaned = re.sub(r"\s\.\s", " ", cleaned)
+			cleaned = re.sub(r"\.\s([A-Za-z_])", r" \1", cleaned)
+			cleaned = re.sub(r"([A-Za-z0-9])\.\s", r"\1 ", cleaned)
 
 
 			# frappe.throw(cleaned)

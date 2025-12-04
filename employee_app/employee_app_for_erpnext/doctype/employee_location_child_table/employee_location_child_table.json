@@ -1,0 +1,35 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-12-02 11:57:34.086791",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "location"
+ ],
+ "fields": [
+  {
+   "fieldname": "location",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Location",
+   "options": "Employee Location"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-12-02 11:58:26.479137",
+ "modified_by": "Administrator",
+ "module": "Employee app for ERPNext",
+ "name": "Employee Location Child Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

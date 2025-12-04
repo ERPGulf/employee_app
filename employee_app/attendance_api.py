@@ -227,7 +227,7 @@ def upload_file():
 
 
 @frappe.whitelist()
-def add_log_based_on_employee_field(employee_field_value, timestamp, device_id=None, log_type=None):
+def add_log_based_on_employee_field(employee_field_value, timestamp,location=None, device_id=None, log_type=None):
     """Add Employee Checkin log entry"""
     try:
         if log_type:
@@ -238,7 +238,8 @@ def add_log_based_on_employee_field(employee_field_value, timestamp, device_id=N
             "employee": employee_field_value,
             "time": timestamp,
             "device_id": device_id,
-            "log_type": log_type
+            "log_type": log_type,
+            "custom_employee_chekin_location":location
         })
 
         doc.insert(ignore_permissions=True)
@@ -288,10 +289,11 @@ def get_employee_data(employee_id=None):
     try:
         if employee_id:
 
+
             data = frappe.db.get_value(
                 "Employee",
                 employee_id,
-                ["custom_employee_location", "name", "employee_name", "custom_in"],
+                ["name", "employee_name", "custom_in"],
                 as_dict=True
             )
 
@@ -303,41 +305,57 @@ def get_employee_data(employee_id=None):
                 )
 
 
-            location = None
-            if data.get("custom_employee_location"):
-                location = frappe.db.get_value(
+            child_locations = frappe.get_all(
+                "Employee Location Child Table",
+                filters={"parent": employee_id, "parenttype": "Employee"},
+                fields=["location"]
+            )
+
+
+            location_details = []
+
+            for row in child_locations:
+                if not row.location:
+                    continue
+
+
+                loc_data = frappe.db.get_value(
                     "Employee Location",
-                    data["custom_employee_location"],
-                    ["reporting_location", "reporting_radius"],
+                    row.location,
+                    ["name", "reporting_radius", "reporting_location", "lat", "long"],
                     as_dict=True
                 )
 
 
+                if loc_data:
+                    location_details.append({
+                        "location": row.location,
+                        "reporting_location": loc_data.get("reporting_location"),
+                        "reporting_radius": loc_data.get("reporting_radius"),
+                        "latitude": loc_data.get("lat"),
+                        "longitude": loc_data.get("long"),
+                    })
+
             result = {
                 "name": data.get("name"),
                 "first_name": data.get("employee_name"),
-                "custom_reporting_location": location.get("reporting_location") if location else None,
-                "custom_reporting_radius": location.get("reporting_radius") if location else None,
                 "custom_in": data.get("custom_in"),
+                "employee_locations": location_details
             }
 
         else:
 
-            employees = frappe.get_all("Employee", pluck="name")
-            result = employees
-
+            result = frappe.get_all("Employee", pluck="name")
 
         return result
 
     except Exception as e:
-
         frappe.log_error(message=frappe.get_traceback(), title="get_employee_data Error")
         return Response(
             json.dumps({"error": str(e)}),
             status=500,
             mimetype="application/json"
         )
-
 
 @frappe.whitelist()
 def get_attendance_details(employee_id=None, limit_start=0, limit_page_length=20):
