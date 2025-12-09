@@ -699,3 +699,12 @@ def get_monthly_hours(employee, month, year):
     final_minutes = total_minutes % 60
 
     return f"{final_hours:02d}:{final_minutes:02d}"
+
+
+
+
+@frappe.whitelist(allow_guest=True)
+def get_server_time():
+    return {
+        "server_time": frappe.utils.now()
+    }
