@@ -44,9 +44,12 @@
    "unique": 1
   },
   {
+   "default": "100",
    "fieldname": "reporting_radius",
    "fieldtype": "Data",
-   "label": "Reporting Radius"
+   "in_list_view": 1,
+   "label": "Reporting Radius(in meters)",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_buer",
@@ -68,7 +71,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-12 11:26:44.685138",
+ "modified": "2025-12-10 10:37:16.703114",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Employee Location",
