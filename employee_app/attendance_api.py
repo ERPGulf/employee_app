@@ -551,14 +551,26 @@ def create_expense_claim(employee, expense_date=None, amount=None, expense_type=
         doc.company = frappe.db.get_default("company")
         doc.approval_status = "Approved"
 
-        doc.append("expenses", {
+
+        doc.currency = frappe.get_cached_value("Company", doc.company, "default_currency")
+        doc.exchange_rate = 1
+
+
+        row = doc.append("expenses", {
             "expense_date": expense_date or nowdate(),
             "expense_type": expense_type,
             "amount": amount,
-            "description": description
+            "description": description,
+            "currency": doc.currency,
+
         })
 
+
+        row.exchange_rate = 1
+        row.currency = doc.currency
+
         doc.insert(ignore_permissions=True)
+
         file_urls = []
         if frappe.request.files:
             # Attach uploaded file(s) to this Expense Claim
@@ -708,3 +720,213 @@ def get_server_time():
     return {
         "server_time": frappe.utils.now()
     }
+
+
+ISSUE_DATE = "2024-01-01"
+EXPIRY_DATE = "2026-01-01"
+DAYS_REMAINING = 400
+
+
+
+@frappe.whitelist(allow_guest=False)
+def get_shortcut_2(employee):
+    settings = frappe.get_single("Checkin App Setting")
+    employee_meta = frappe.get_meta("Employee")
+
+    employee_fields = {df.fieldname for df in employee_meta.fields}
+
+    valid_fields = []
+    missing_fields = []
+
+
+    # if settings.shortcut_2:
+    #     shortcut_field = frappe.scrub(settings.shortcut_2)
+    #     if shortcut_field in employee_fields:
+    #         valid_fields.append(shortcut_field)
+    #     else:
+    #         missing_fields.append(shortcut_field)
+
+
+
+    related_fields = [
+        settings.field21,
+        settings.field22,
+        settings.field32,
+        settings.field42,
+        settings.field52,
+    ]
+
+    for field_label in related_fields:
+        if not field_label:
+            continue
+
+        fieldname = frappe.scrub(field_label)
+        if fieldname in employee_fields:
+            valid_fields.append(fieldname)
+        else:
+            missing_fields.append(fieldname)
+
+
+    if missing_fields:
+        return {
+            "status": "error",
+            "message": "Some fields are missing in Employee DocType",
+            "missing_fields": missing_fields
+        }
+    emp_doc = frappe.get_doc("Employee", employee)
+    field_values = {}
+
+    for field in valid_fields:
+        clean_name = field.replace("custom_", "", 1) if field.startswith("custom_") else field
+        field_values[clean_name] = emp_doc.get(field)
+
+    return {
+        "status": "success",
+        "shortcut": settings.shortcut_2,
+        "fields": field_values
+    }
+@frappe.whitelist(allow_guest=False)
+def get_shortcut_1(employee):
+    settings = frappe.get_single("Checkin App Setting")
+    employee_meta = frappe.get_meta("Employee")
+
+    employee_fields = {df.fieldname for df in employee_meta.fields}
+
+    valid_fields = []
+    missing_fields = []
+
+
+    # if settings.shortcut_1:
+    #     shortcut_field = frappe.scrub(settings.shortcut_1)
+    #     if shortcut_field in employee_fields:
+    #         valid_fields.append(shortcut_field)
+    #     else:
+    #         missing_fields.append(shortcut_field)
+
+
+    related_fields = [
+        settings.field1,
+        settings.field2,
+        settings.field3,
+        settings.field4,
+        settings.field5,
+    ]
+
+    for field_label in related_fields:
+        if not field_label:
+            continue
+
+        fieldname = frappe.scrub(field_label)
+        if fieldname in employee_fields:
+            valid_fields.append(fieldname)
+        else:
+            missing_fields.append(fieldname)
+
+    if missing_fields:
+        return {
+            "status": "error",
+            "message": "Some fields are missing in Employee DocType",
+            "missing_fields": missing_fields
+        }
+
+
+    emp_doc = frappe.get_doc("Employee", employee)
+
+
+    field_values = {}
+    for field in valid_fields:
+        clean_name = field.replace("custom_", "", 1) if field.startswith("custom_") else field
+        field_values[clean_name] = emp_doc.get(field)
+
+    return {
+        "status": "success",
+        "shortcut": settings.shortcut_1,
+        "data": field_values
+    }
+
+
+
+@frappe.whitelist(allow_guest=False)
+def get_shortcut_3(employee):
+    settings = frappe.get_single("Checkin App Setting")
+    employee_meta = frappe.get_meta("Employee")
+
+    employee_fields = {df.fieldname for df in employee_meta.fields}
+
+    valid_fields = []
+    missing_fields = []
+
+
+    # if settings.shortcut_1:
+    #     shortcut_field = frappe.scrub(settings.shortcut_3)
+    #     if shortcut_field in employee_fields:
+    #         valid_fields.append(shortcut_field)
+    #     else:
+    #         missing_fields.append(shortcut_field)
+
+
+    related_fields = [
+        settings.field13,
+        settings.field23,
+        settings.field33,
+        settings.field34,
+        settings.field35,
+    ]
+
+    for field_label in related_fields:
+        if not field_label:
+            continue
+
+        fieldname = frappe.scrub(field_label)
+        if fieldname in employee_fields:
+            valid_fields.append(fieldname)
+        else:
+            missing_fields.append(fieldname)
+
+    if missing_fields:
+        return {
+            "status": "error",
+            "message": "Some fields are missing in Employee DocType",
+            "missing_fields": missing_fields
+        }
+
+
+    emp_doc = frappe.get_doc("Employee", employee)
+
+
+    field_values = {}
+    for field in valid_fields:
+        clean_name = field.replace("custom_", "", 1) if field.startswith("custom_") else field
+        field_values[clean_name] = emp_doc.get(field)
+    return {
+        "status": "success",
+        "shortcut": settings.shortcut_3,
+        "data": field_values
+    }
+
+@frappe.whitelist(allow_guest=False)
+def qr_code(employee):
+
+    emp = frappe.get_doc("Employee", employee)
+
+    if not emp.image:
+        return {
+            "status": "error",
+            "message": "No image found for this employee"
+        }
+
+    return {
+        "status": "success",
+        "employee": employee,
+        "image_url": frappe.local.conf.host_name + emp.image
+    }
+
+@frappe.whitelist(allow_guest=False)
+def get_leave_type(employee):
+    doc = frappe.get_list(
+        "Leave Allocation",
+        fields=["leave_type"],
+        filters={"employee":employee}
+
+    )
+    return doc

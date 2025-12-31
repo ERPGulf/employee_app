@@ -1,0 +1,167 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-12-18 13:36:10.603856",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "section_break_iwiu",
+  "shortcut_2",
+  "field21",
+  "field22",
+  "field32",
+  "field42",
+  "field52",
+  "column_break_wwrs",
+  "shortcut_1",
+  "field1",
+  "field2",
+  "field3",
+  "field4",
+  "field5",
+  "column_break_xwyj",
+  "shortcut_3",
+  "field13",
+  "field23",
+  "field33",
+  "field34",
+  "field35"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "section_break_iwiu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "shortcut_2",
+   "fieldtype": "Data",
+   "label": "Shortcut 2"
+  },
+  {
+   "fieldname": "field21",
+   "fieldtype": "Data",
+   "label": "Field1"
+  },
+  {
+   "fieldname": "field22",
+   "fieldtype": "Data",
+   "label": "Field2"
+  },
+  {
+   "fieldname": "field32",
+   "fieldtype": "Data",
+   "label": "Field3"
+  },
+  {
+   "fieldname": "field42",
+   "fieldtype": "Data",
+   "label": "Field4"
+  },
+  {
+   "fieldname": "field52",
+   "fieldtype": "Data",
+   "label": "Field5"
+  },
+  {
+   "fieldname": "column_break_wwrs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "shortcut_1",
+   "fieldtype": "Data",
+   "label": "Shortcut 1"
+  },
+  {
+   "fieldname": "field1",
+   "fieldtype": "Data",
+   "label": "Field1"
+  },
+  {
+   "fieldname": "field2",
+   "fieldtype": "Data",
+   "label": "Field2"
+  },
+  {
+   "fieldname": "field3",
+   "fieldtype": "Data",
+   "label": "Field3"
+  },
+  {
+   "fieldname": "field4",
+   "fieldtype": "Data",
+   "label": "Field4"
+  },
+  {
+   "fieldname": "field5",
+   "fieldtype": "Data",
+   "label": "Field5"
+  },
+  {
+   "fieldname": "column_break_xwyj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "shortcut_3",
+   "fieldtype": "Data",
+   "label": "Shortcut 3"
+  },
+  {
+   "fieldname": "field13",
+   "fieldtype": "Data",
+   "label": "Field1"
+  },
+  {
+   "fieldname": "field23",
+   "fieldtype": "Data",
+   "label": "Field2"
+  },
+  {
+   "fieldname": "field33",
+   "fieldtype": "Data",
+   "label": "Field3"
+  },
+  {
+   "fieldname": "field34",
+   "fieldtype": "Data",
+   "label": "Field4"
+  },
+  {
+   "fieldname": "field35",
+   "fieldtype": "Data",
+   "label": "Field5"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-12-22 07:25:51.778893",
+ "modified_by": "Administrator",
+ "module": "Employee app for ERPNext",
+ "name": "Checkin App Setting",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

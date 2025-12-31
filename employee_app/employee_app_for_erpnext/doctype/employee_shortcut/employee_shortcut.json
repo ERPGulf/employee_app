@@ -1,0 +1,41 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-12-18 13:38:25.665301",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "shortcut_name",
+  "fields"
+ ],
+ "fields": [
+  {
+   "fieldname": "shortcut_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Shortcut Name"
+  },
+  {
+   "fieldname": "fields",
+   "fieldtype": "Table",
+   "label": "Fields",
+   "options": "shortcut fields"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-12-18 13:53:15.284644",
+ "modified_by": "Administrator",
+ "module": "Employee app for ERPNext",
+ "name": "Employee shortcut",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
