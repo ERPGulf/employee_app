@@ -918,7 +918,7 @@ def qr_code(employee):
     return {
         "status": "success",
         "employee": employee,
-        "image_url": frappe.local.conf.host_name + emp.image
+        "image_url": frappe.local.conf.host_name + emp.custom_qr_code
     }
 
 @frappe.whitelist(allow_guest=False)
