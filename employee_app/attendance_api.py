@@ -613,7 +613,7 @@ def create_leave_application(employee, leave_type, from_date, to_date, posting_d
             "from_date": from_date,
             "to_date": to_date,
             "posting_date": posting_date or frappe.utils.nowdate(),
-            "reason": reason or "",
+            "description": reason or "",
             "company": frappe.defaults.get_user_default("Company"),
             "custom_acknowledgement_policy1":acknowledgement_policy if acknowledgement_policy else None,
 
@@ -909,7 +909,7 @@ def qr_code(employee):
 
     emp = frappe.get_doc("Employee", employee)
 
-    if not emp.image:
+    if not emp.custom_qr_code:
         return {
             "status": "error",
             "message": "No image found for this employee"
