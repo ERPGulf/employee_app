@@ -923,10 +923,90 @@ def qr_code(employee):
 
 @frappe.whitelist(allow_guest=False)
 def get_leave_type(employee):
-    doc = frappe.get_list(
+
+    allocated_leave_types = frappe.get_list(
         "Leave Allocation",
         fields=["leave_type"],
-        filters={"employee":employee}
-
+        filters={"employee": employee},
+        pluck="leave_type"
     )
-    return doc
+    lwp_leave_types = frappe.get_list(
+        "Leave Type",
+        fields=["name"],
+        filters={"is_lwp": 1},
+        pluck="name"
+    )
+    all_leave_types = list(set(allocated_leave_types + lwp_leave_types))
+
+    return all_leave_types
+
+
+
+import frappe
+
+@frappe.whitelist()
+def get_notification(employee):
+
+    notifications = frappe.db.get_all(
+        "Employee Notification",
+        fields=["name","tittle as title","notification","read","date","employee","type"],
+        filters={
+            "employee":employee,
+        }
+    )
+    return notifications
+
+
+
+@frappe.whitelist()
+def mark_notification_as_read(id):
+    frappe.db.set_value(
+        "Employee Notification",
+        id,
+        "read",
+        1
+    )
+    frappe.db.commit()
+
+    return {
+        "status": "success",
+        "message": "Notification marked as read"
+    }
+
+
+
+
+@frappe.whitelist(allow_guest=True)
+def create_complaint(employee, date, message):
+    try:
+
+        doc = frappe.get_doc({
+            "doctype": "Employee Complaint",
+            "date": date,
+            "employee": employee,
+            "message": message
+        })
+
+
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+
+
+        return {
+                "name": doc.name,
+                "employee": doc.employee,
+                "date": doc.date,
+                "message": doc.message
+
+        }
+
+    except Exception as e:
+        frappe.log_error(
+            title="Create Employee Complaint Failed",
+            message=frappe.get_traceback()
+        )
+
+        return {
+            "status": "error",
+            "message": str(e)
+        }
