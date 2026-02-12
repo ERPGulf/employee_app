@@ -921,6 +921,7 @@ def qr_code(employee):
         "image_url": frappe.local.conf.host_name + emp.custom_qr_code
     }
 
+
 @frappe.whitelist(allow_guest=False)
 def get_leave_type(employee):
 
