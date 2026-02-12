@@ -959,6 +959,7 @@ def get_notification(employee):
 
 
 
+
 @frappe.whitelist()
 def mark_notification_as_read(id):
     frappe.db.set_value(
