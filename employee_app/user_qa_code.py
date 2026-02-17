@@ -17,14 +17,9 @@ import os
 
 def create_qr_code(doc, method):
 	"""Create QR Code after inserting Employee"""
-	# if QR Code field not present, do nothing
 	if not hasattr(doc, 'custom_qr_code'):
 		return
 
-	# # Don't create QR Code if it already exists
-	# qr_code = doc.get("qr_code")
-	# if qr_code and frappe.db.exists({"doctype": "File", "file_url": qr_code}):
-	# 	return
 	fields = frappe.get_meta('Employee').fields
 	auth_client_name = frappe.db.get_value("OAuth Client", {}, "name")
 	if auth_client_name:
@@ -32,114 +27,59 @@ def create_qr_code(doc, method):
 	else:
 		frappe.throw("No OAuth Client found")
 	app_name = auth_client.app_name
+	if not app_name:
+		frappe.throw(_('App name missing in OAuth Client'))
 
-	app_key= base64.b64encode(app_name.encode()).decode("utf-8")
+	app_key = base64.b64encode(app_name.encode()).decode("utf-8")
 
 	for field in fields:
 		if field.fieldname == 'custom_qr_code' and field.fieldtype == 'Attach Image':
 
-			''' TLV conversion for
-			1. Seller's Name
-			2. VAT Number
-			3. Time Stamp
-			4. Invoice Amount
-			5. VAT Amount
-			'''
-			tlv_array = []
-
-
-			company_name = " Company: " + frappe.db.get_value('Company',doc.company,'company_name')
+			company_name = frappe.db.get_value('Company', doc.company, 'company_name')
 			if not company_name:
 				frappe.throw(_('Company name missing for {} in the company document'.format(doc.company)))
 
-			tag = bytes([1]).hex()
-			length = bytes([len(company_name.encode('utf-8'))]).hex()
-			value = company_name.encode('utf-8').hex()
-			tlv_array.append(''.join([tag, length, value]))
+			if not doc.name:
+				frappe.throw(_('Employee code missing in the document'))
 
-			user_name = " Employee_Code: " + str(doc.name)
-			if not user_name:
-				frappe.throw(_('Employee name missing for {} in the  document'))
+			if not doc.first_name:
+				frappe.throw(_('First name missing for {} in the document'.format(doc.name)))
 
-			tag = bytes([1]).hex()
-			length = bytes([len(user_name.encode('utf-8'))]).hex()
-			value = user_name.encode('utf-8').hex()
-			tlv_array.append(''.join([tag, length, value]))
+			last_name = doc.last_name if doc.last_name else ""
 
-			full_name = " Full_Name: " + str(doc.first_name + "  " + doc.last_name)
-			tag = bytes([1]).hex()
-			length = bytes([len(full_name.encode('utf-8'))]).hex()
-			value = full_name.encode('utf-8').hex()
-			tlv_array.append(''.join([tag, length, value]))
+			if not doc.custom_photo_:
+				frappe.throw(_('Photo missing for {} in the document'.format(doc.name)))
 
-			full_name = " Photo: " + str(doc.custom_photo_)
-			tag = bytes([1]).hex()
-			length = bytes([len(full_name.encode('utf-8'))]).hex()
-			value = full_name.encode('utf-8').hex()
-			tlv_array.append(''.join([tag, length, value]))
+			if not doc.custom_restrict_location and doc.custom_restrict_location != 0:
+				frappe.throw(_('Restrict Location missing for {} in the document'.format(doc.name)))
 
-			full_name = "Restrict Location: " + str(doc.custom_restrict_location)
-			tag = bytes([1]).hex()
-			length = bytes([len(full_name.encode('utf-8'))]).hex()
-			value = full_name.encode('utf-8').hex()
-			tlv_array.append(''.join([tag, length, value]))
+			if not doc.user_id:
+				frappe.throw(_('User ID missing for {} in the document'.format(doc.name)))
 
-			full_name = " User_id: " + str(doc.user_id)
-			tag = bytes([1]).hex()
-			length = bytes([len(full_name.encode('utf-8'))]).hex()
-			value = full_name.encode('utf-8').hex()
-			tlv_array.append(''.join([tag, length, value]))
+			if not frappe.local.conf.host_name:
+				frappe.throw(_('API URL (host_name) is missing in site config'))
 
-			api_url = " API: " +  frappe.local.conf.host_name
-			if not api_url:
-				frappe.throw(_('API URL is missing for {} in the  document'))
+			if not app_key:
+				frappe.throw(_('App key could not be generated'))
 
-			tag = bytes([1]).hex()
-			length = bytes([len(api_url.encode('utf-8'))]).hex()
-			value = api_url.encode('utf-8').hex()
-			tlv_array.append(''.join([tag, length, value]))
-			key = " App_key: " +  str(app_key)
-			tag = bytes([1]).hex()
-
-			value = key.encode('utf-8').hex()
-			tlv_array.append(''.join([tag, length, value]))
-
-			# frappe.throw(bytes.fromhex(''.join(tlv_array)).decode('utf-8','replace'))
-
-			import re
-			# cleaned = re.sub(r"[^\x20-\x7E]", "", bytes.fromhex(''.join(tlv_array)).decode('utf-8','replace')).replace("'", "").strip()
-			cleaned = re.sub(r"[^A-Za-z0-9 :/\.=\-]+@_", " ", bytes.fromhex(''.join(tlv_array)).decode('utf-8','replace')).strip()
-			cleaned = re.sub(
-				r"[^A-Za-z0-9 \u0600-\u06FF\u0750-\u077F\u08A0-\u08FF:/\.=\-@_]+",
-				" ",
-				bytes.fromhex(''.join(tlv_array)).decode('utf-8','replace')
-			).strip()
-
-			cleaned = re.sub(r"^G\s+(?=Company:)", "", cleaned)
-			cleaned = re.sub(r"([A-Za-z0-9])\s*\.\s+(?=[A-Z_])", r"\1 ", cleaned)
-			cleaned = re.sub(r"\s+\.\s+", " ", cleaned)
-			# cleaned = re.sub(r"([A-Za-z0-9])\s*-\s+(?=[A-Z_])", r"\1 ", cleaned)
-			cleaned = re.sub(r"([A-Za-z0-9])\s*-\s+(?=[A-Z_])", r"\1 - ", cleaned)
-			cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
-
-
-			# frappe.throw(cleaned)
+			cleaned = (
+				f"Company: {company_name}"
+				f" Employee_Code: {doc.name}"
+				f" Full_Name: {doc.first_name}  {last_name}"
+				f" Photo: {doc.custom_photo_}"
+				f" Restrict Location: {doc.custom_restrict_location}"
+				f" User_id: {doc.user_id}"
+				f" API: {frappe.local.conf.host_name}"
+				f" App_key: {app_key}"
+			)
 
 			base64_string = b64encode(cleaned.encode()).decode()
-
-
-			# base64_string = b64encode(bytes.fromhex(tlv_buff)).decode()
-
 
 			qr_image = io.BytesIO()
 			url = qr_create(base64_string, error='L')
 			url.png(qr_image, scale=2, quiet_zone=1)
 
-
-
-
 			filename = f"QR-CODE-{doc.name}.png".replace(os.path.sep, "__")
-			print(filename)
 			_file = frappe.get_doc({
 				"doctype": "File",
 				"file_name": filename,
@@ -149,10 +89,8 @@ def create_qr_code(doc, method):
 
 			_file.save()
 
-
 			doc.db_set('custom_qr_code', _file.file_url)
 			doc.notify_update()
-
 
 			break
 
