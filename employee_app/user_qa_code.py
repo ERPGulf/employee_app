@@ -47,8 +47,8 @@ def create_qr_code(doc, method):
 
 			last_name = doc.last_name if doc.last_name else ""
 
-			if not doc.custom_photo_:
-				frappe.throw(_('Photo missing for {} in the document'.format(doc.name)))
+			# if not doc.custom_photo_:
+			# 	frappe.throw(_('Photo missing for {} in the document'.format(doc.name)))
 
 			if not doc.custom_restrict_location and doc.custom_restrict_location != 0:
 				frappe.throw(_('Restrict Location missing for {} in the document'.format(doc.name)))
