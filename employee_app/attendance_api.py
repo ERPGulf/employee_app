@@ -599,7 +599,14 @@ def create_expense_claim(employee, expense_date=None, amount=None, expense_type=
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Expense Claim API Error")
-        return Response(json.dumps({"error": str(e)}), status=500, mimetype="application/json")
+        error_response = {
+            "error": str(e),
+            "message": "Internal Server Error"
+        }
+
+        return Response(
+            json.dumps(error_response), status=500, mimetype="application/json"
+        )
 
 
 @frappe.whitelist()
@@ -637,8 +644,13 @@ def create_leave_application(employee, leave_type, from_date, to_date, posting_d
         )
     except Exception as e:
         frappe.log_error(message=str(e), title="Leave API Error")
+        error_response = {
+            "error": str(e),
+            "message": "Internal Server Error"
+        }
+
         return Response(
-            json.dumps(e), status=500, mimetype="application/json"
+            json.dumps(error_response), status=500, mimetype="application/json"
         )
 
 
@@ -975,8 +987,11 @@ def mark_notification_as_read(id):
         "message": "Notification marked as read"
     }
 
-
-
+@frappe.whitelist()
+def get_expense_claim_type():
+    doc = frappe.get_list("Expense Claim Type", fields=["name"])
+    expense_types = [d["name"] for d in doc]
+    return expense_types
 
 @frappe.whitelist(allow_guest=True)
 def create_complaint(employee, date, message):
