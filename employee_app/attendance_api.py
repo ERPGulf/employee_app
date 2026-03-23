@@ -545,16 +545,12 @@ def create_expense_claim(employee, expense_date=None, amount=None, expense_type=
         if not employee or not amount or not expense_type:
             frappe.throw(_("Employee, Amount, and Expense Type are required"))
 
-
         doc = frappe.new_doc("Expense Claim")
         doc.employee = employee
         doc.company = frappe.db.get_default("company")
-        doc.approval_status = "Approved"
-
 
         doc.currency = frappe.get_cached_value("Company", doc.company, "default_currency")
         doc.exchange_rate = 1
-
 
         row = doc.append("expenses", {
             "expense_date": expense_date or nowdate(),
@@ -562,18 +558,17 @@ def create_expense_claim(employee, expense_date=None, amount=None, expense_type=
             "amount": amount,
             "description": description,
             "currency": doc.currency,
-
         })
-
 
         row.exchange_rate = 1
         row.currency = doc.currency
 
+
         doc.insert(ignore_permissions=True)
+        doc.save()
 
         file_urls = []
         if frappe.request.files:
-            # Attach uploaded file(s) to this Expense Claim
             frappe.form_dict.doctype = "Expense Claim"
             frappe.form_dict.docname = doc.name
             frappe.form_dict.is_private = 1
@@ -582,6 +577,7 @@ def create_expense_claim(employee, expense_date=None, amount=None, expense_type=
             file_urls = upload_func()
 
 
+        doc.reload()
 
         data = {
             "id": doc.name,
@@ -590,9 +586,9 @@ def create_expense_claim(employee, expense_date=None, amount=None, expense_type=
             "amount": float(amount),
             "expense_type": expense_type,
             "description": description,
+
             "status": doc.approval_status,
             "file_url": file_urls
-
         }
 
         return Response(json.dumps(data), status=200, mimetype="application/json")
