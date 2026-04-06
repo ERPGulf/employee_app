@@ -26,6 +26,9 @@ doc_events = {
     },
     "Employee Checkin": {
         "after_insert": "employee_app.attendance_api.employee_checkin_handler"
+    },
+     "Attendance": {
+        "validate": "employee_app.attendance_api.override_working_hours"
     }
 }
 
