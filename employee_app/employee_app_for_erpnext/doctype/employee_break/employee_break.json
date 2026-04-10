@@ -10,27 +10,12 @@
   "employee_name",
   "log_type",
   "shift",
-  "overtime_type",
   "column_break_4",
   "time",
   "device_id",
   "skip_auto_attendance",
   "attendance",
-  "employee_checkin",
-  "location_section",
-  "latitude",
-  "column_break_yqpi",
-  "longitude",
-  "section_break_ksbo",
-  "fetch_geolocation",
-  "geolocation",
-  "shift_timings_section",
-  "shift_start",
-  "shift_end",
-  "offshift",
-  "column_break_vyyt",
-  "shift_actual_start",
-  "shift_actual_end"
+  "employee_checkin"
  ],
  "fields": [
   {
@@ -66,13 +51,6 @@
    "search_index": 1
   },
   {
-   "fieldname": "overtime_type",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Overtime Type",
-   "options": "Overtime Type"
-  },
-  {
    "fieldname": "column_break_4",
    "fieldtype": "Column Break"
   },
@@ -105,86 +83,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "location_section",
-   "fieldtype": "Section Break",
-   "label": "Location"
-  },
-  {
-   "fieldname": "latitude",
-   "fieldtype": "Float",
-   "label": "Latitude",
-   "precision": "7",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_yqpi",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "longitude",
-   "fieldtype": "Float",
-   "label": "Longitude",
-   "precision": "7",
-   "read_only": 1
-  },
-  {
-   "fieldname": "section_break_ksbo",
-   "fieldtype": "Section Break",
-   "hide_border": 1
-  },
-  {
-   "fieldname": "fetch_geolocation",
-   "fieldtype": "Button",
-   "label": "Fetch Geolocation"
-  },
-  {
-   "fieldname": "geolocation",
-   "fieldtype": "Geolocation",
-   "label": "Geolocation",
-   "read_only": 1
-  },
-  {
-   "fieldname": "shift_timings_section",
-   "fieldtype": "Section Break",
-   "label": "Shift Timings"
-  },
-  {
-   "fieldname": "shift_start",
-   "fieldtype": "Datetime",
-   "hidden": 1,
-   "label": "Shift Start"
-  },
-  {
-   "fieldname": "shift_end",
-   "fieldtype": "Datetime",
-   "hidden": 1,
-   "label": "Shift End"
-  },
-  {
-   "default": "0",
-   "fieldname": "offshift",
-   "fieldtype": "Check",
-   "hidden": 1,
-   "label": "Off-shift",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_vyyt",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "shift_actual_start",
-   "fieldtype": "Datetime",
-   "hidden": 1,
-   "label": "Shift Actual Start"
-  },
-  {
-   "fieldname": "shift_actual_end",
-   "fieldtype": "Datetime",
-   "hidden": 1,
-   "label": "Shift Actual End"
-  },
-  {
    "fieldname": "employee_checkin",
    "fieldtype": "Link",
    "label": "Employee Checkin",
@@ -192,7 +90,7 @@
   }
  ],
  "links": [],
- "modified": "2026-04-03 10:42:54.233597",
+ "modified": "2026-04-10 08:48:58.812468",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Employee Break",
