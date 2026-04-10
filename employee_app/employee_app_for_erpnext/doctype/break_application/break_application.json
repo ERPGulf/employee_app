@@ -12,15 +12,13 @@
   "employee",
   "employee_name",
   "column_break_4",
-  "leave_type",
   "company",
   "department",
   "reference_doc",
   "section_break_5",
   "date",
-  "from_date",
-  "to_date",
-  "total_leave_days",
+  "time_in",
+  "time_out",
   "total_break_hours",
   "column_break1",
   "description",
@@ -74,15 +72,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "leave_type",
-   "fieldtype": "Link",
-   "ignore_user_permissions": 1,
-   "in_standard_filter": 1,
-   "label": "Leave Type",
-   "options": "Leave Type",
-   "search_index": 1
-  },
-  {
    "fetch_from": "employee.company",
    "fieldname": "company",
    "fieldtype": "Link",
@@ -104,29 +93,6 @@
    "fieldname": "section_break_5",
    "fieldtype": "Section Break",
    "label": "Dates & Reason"
-  },
-  {
-   "fieldname": "from_date",
-   "fieldtype": "Datetime",
-   "in_list_view": 1,
-   "label": "Time IN",
-   "search_index": 1
-  },
-  {
-   "fieldname": "to_date",
-   "fieldtype": "Datetime",
-   "label": "Time OUT",
-   "search_index": 1
-  },
-  {
-   "fieldname": "total_leave_days",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "in_list_view": 1,
-   "label": "total_leave_days",
-   "no_copy": 1,
-   "precision": "1",
-   "read_only": 1
   },
   {
    "fieldname": "column_break1",
@@ -265,13 +231,26 @@
   {
    "fieldname": "column_break_psyg",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "time_in",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Time IN ",
+   "search_index": 1
+  },
+  {
+   "fieldname": "time_out",
+   "fieldtype": "Datetime",
+   "label": "Time OUT ",
+   "search_index": 1
   }
  ],
  "icon": "fa fa-calendar",
  "is_submittable": 1,
  "links": [],
  "max_attachments": 3,
- "modified": "2026-04-09 11:28:12.449006",
+ "modified": "2026-04-10 09:25:46.622034",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Break Application",
@@ -363,7 +342,7 @@
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
- "search_fields": "employee,employee_name,leave_type,from_date,to_date,total_leave_days",
+ "search_fields": "employee,employee_name",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],

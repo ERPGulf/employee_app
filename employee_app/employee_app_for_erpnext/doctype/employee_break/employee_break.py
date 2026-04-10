@@ -15,7 +15,7 @@ class EmployeeBreak(Document):
             {
                 "employee": self.employee,
                 "date": log_date,
-                "to_date": ["is", "not set"],
+                "time_out": ["is", "not set"],
                 "docstatus": ["!=", 2]
             },
             order_by="creation desc"
@@ -34,7 +34,7 @@ class EmployeeBreak(Document):
                 "doctype": "Break Application",
                 "employee": self.employee,
                 "date": log_date,
-                "from_date": self.time,
+                "time_in": self.time,
                 "company": frappe.db.get_value("Employee", self.employee, "company")
             })
             break_app.insert(ignore_permissions=True)
@@ -48,7 +48,7 @@ class EmployeeBreak(Document):
             break_app = frappe.get_doc("Break Application", open_break)
 
 
-            current_hours = time_diff_in_hours(self.time, break_app.from_date)
+            current_hours = time_diff_in_hours(self.time, break_app.time_in)
 
             total_previous = self.get_total_break_hours(
                 log_date, exclude=open_break
@@ -56,14 +56,14 @@ class EmployeeBreak(Document):
 
 
             final_to_time, final_hours = self.validate_break_on_out(
-                break_app.from_date,
+                break_app.time_in,
                 self.time,
                 total_previous,
                 current_hours
             )
 
 
-            break_app.to_date = final_to_time
+            break_app.time_out = final_to_time
             break_app.total_break_hours = final_hours
             break_app.save(ignore_permissions=True)
 
@@ -109,7 +109,7 @@ class EmployeeBreak(Document):
         filters = {
             "employee": self.employee,
             "date": log_date,
-            "to_date": ["is", "set"],
+            "time_out": ["is", "set"],
             "docstatus": ["!=", 2]
         }
 
