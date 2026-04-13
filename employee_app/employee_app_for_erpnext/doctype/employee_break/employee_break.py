@@ -116,5 +116,4 @@ class EmployeeBreak(Document):
             },
             fields=["total_break_hours"]
         )
-
         return sum((b.total_break_hours or 0) for b in breaks)
