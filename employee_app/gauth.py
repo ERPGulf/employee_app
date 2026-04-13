@@ -4,6 +4,11 @@ import requests
 import frappe
 from werkzeug.wrappers import Response
 from frappe.integrations.oauth2 import get_token
+import frappe
+import json
+from datetime import datetime
+from werkzeug.wrappers import Response
+from frappe.utils import getdate, nowdate
 
 
 class GAuth:
@@ -357,3 +362,59 @@ def generate_token_secure(api_key, api_secret, app_key):
 def create_refresh_token(refresh_token):
     """Create a new access token using refresh token."""
     return _gauth_instance.create_refresh_token(refresh_token)
+
+
+
+@frappe.whitelist(allow_guest=False)
+def create_attendence_request(employee, from_date, to_date, reason):
+    try:
+        today = getdate(nowdate())
+        from_date_obj = getdate(from_date)
+        to_date_obj = getdate(to_date)
+
+
+        if from_date_obj > today or to_date_obj > today:
+            return Response(
+                json.dumps({"message": "Future dates are not allowed. Please select current or previous dates."}),
+                status=400,
+                mimetype="application/json"
+            )
+
+
+        if from_date_obj > to_date_obj:
+            return Response(
+                json.dumps({"message": "From Date cannot be greater than To Date."}),
+                status=400,
+                mimetype="application/json"
+            )
+
+
+        doc = frappe.get_doc({
+            "doctype": "Attendance Request",
+            "employee": employee,
+            "from_date": from_date,
+            "to_date": to_date,
+            "reason": reason
+        })
+        doc.insert()
+
+        data = {
+            "name": doc.name,
+            "employee": doc.employee,
+            "from_date": str(doc.from_date),
+            "to_date": str(doc.to_date),
+            "reason": doc.reason,
+        }
+
+        return Response(
+            json.dumps({"message": data}),
+            status=200,
+            mimetype="application/json"
+        )
+
+    except Exception as e:
+        return Response(
+            json.dumps({"message": f"Error creating attendance request: {str(e)}"}),
+            status=500,
+            mimetype="application/json"
+        )

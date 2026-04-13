@@ -1241,6 +1241,20 @@ def override_working_hours(doc, method):
         return
 
 
+    approved_break = frappe.db.exists(
+        "Break Application",
+        {
+            "employee": doc.employee,
+            "date": doc.attendance_date,
+            "status": "Approved"
+        }
+    )
+
+    if approved_break:
+        doc.custom_break_application_approved = 1
+    else:
+        doc.custom_break_application_approved = 0
+
     working_hours = get_employee_working_hours(doc.employee, doc.attendance_date)
     break_hours = get_break_hours(doc.employee, doc.attendance_date)
 
