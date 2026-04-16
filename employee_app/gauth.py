@@ -366,7 +366,7 @@ def create_refresh_token(refresh_token):
 
 
 @frappe.whitelist(allow_guest=False)
-def create_attendence_request(employee, from_date, to_date, reason):
+def create_attendence_request(employee, from_date, to_date,from_time,to_time,reason):
     try:
         today = getdate(nowdate())
         from_date_obj = getdate(from_date)
@@ -394,6 +394,8 @@ def create_attendence_request(employee, from_date, to_date, reason):
             "employee": employee,
             "from_date": from_date,
             "to_date": to_date,
+            "custom_from_time": from_time,
+            "custom_to_time": to_time,
             "reason": reason
         })
         doc.insert()
@@ -403,6 +405,8 @@ def create_attendence_request(employee, from_date, to_date, reason):
             "employee": doc.employee,
             "from_date": str(doc.from_date),
             "to_date": str(doc.to_date),
+            "from_time": doc.custom_from_time,
+            "to_time": doc.custom_to_time,
             "reason": doc.reason,
         }
 

@@ -1249,6 +1249,7 @@ def override_working_hours(doc, method):
             "status": "Approved"
         }
     )
+    frappe.log_error("Approved Break",approved_break)
 
     if approved_break:
         doc.custom_break_application_approved = 1
@@ -1259,6 +1260,6 @@ def override_working_hours(doc, method):
     break_hours = get_break_hours(doc.employee, doc.attendance_date)
 
     net_hours = max(working_hours - break_hours, 0)
-
+    doc.custom_break_hours = break_hours
     doc.working_hours = round(net_hours, 2)
 
