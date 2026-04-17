@@ -9,12 +9,13 @@ from frappe.utils import get_time
 from frappe.utils import nowdate
 from werkzeug.wrappers import Response
 from frappe import _
-from datetime import datetime, timedelta
 from hrms.hr.doctype.employee_checkin.employee_checkin import calculate_working_hours
 from frappe.utils import get_datetime
 from datetime import date
 from frappe.utils import getdate, get_datetime
 from datetime import timedelta
+
+
 @frappe.whitelist()
 def insert_new_trip(
     employee_id: str,
@@ -417,12 +418,15 @@ def get_attendance_details(employee_id: str = None, limit_start: int = 0, limit_
 
 def time_diff_in_minutes(time1, time2):
     """Return absolute difference in minutes between two time/datetime objects"""
-    if isinstance(time1, datetime.datetime) and isinstance(time2, datetime.datetime):
+    if isinstance(time1, datetime) and isinstance(time2, datetime):
         diff = abs((time1 - time2).total_seconds())
+
     else:
-        dt1 = datetime.datetime.combine(datetime.datetime.today(), time1)
-        dt2 = datetime.datetime.combine(datetime.datetime.today(), time2)
+        dt1 = datetime.combine(datetime.today(), time1)
+        dt2 = datetime.combine(datetime.today(), time2)
         diff = abs((dt1 - dt2).total_seconds())
+
+
     return diff / 60
 
 
@@ -462,7 +466,7 @@ def get_log_type(employee: str, punch_time: str, log_type: str):
     try:
         punch_dt = frappe.utils.get_datetime(punch_time)
 
-        if not is_employee_shift_enabled(employee):
+        if  is_employee_shift_enabled(employee):
             return log_type
 
         shift_type, shift_location = get_shift_info(employee)
@@ -559,12 +563,14 @@ def get_expense_claims(employee: str = None, limit: int = 100):
 def create_expense_claim(
     employee: str,
     expense_date: str = None,
-    amount: str = None,
+    amount = None,
     expense_type: str = None,
     description: str = None,
     file_name: str = None,
 ):
+
     try:
+
         if not employee or not amount or not expense_type:
             frappe.throw(_("Employee, Amount, and Expense Type are required"))
 
