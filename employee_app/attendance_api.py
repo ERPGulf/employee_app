@@ -425,8 +425,6 @@ def time_diff_in_minutes(time1, time2):
         dt1 = datetime.combine(datetime.today(), time1)
         dt2 = datetime.combine(datetime.today(), time2)
         diff = abs((dt1 - dt2).total_seconds())
-
-
     return diff / 60
 
 
