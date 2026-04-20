@@ -466,6 +466,8 @@ def get_log_type(employee: str, punch_time: str, log_type: str):
 
         if  is_employee_shift_enabled(employee):
             return log_type
+        if not is_employee_shift_enabled(employee):
+            return log_type
 
         shift_type, shift_location = get_shift_info(employee)
         if not shift_type:
