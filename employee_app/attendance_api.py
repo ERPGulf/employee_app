@@ -761,8 +761,8 @@ def get_monthly_hours(employee: str, month: str, year: str):
     return f"{final_hours:02d}:{final_minutes:02d}"
 
 
-# Security note: get_server_time is intentionally public (no sensitive data exposed)
-@frappe.whitelist(allow_guest=True)
+
+@frappe.whitelist()
 def get_server_time():
     return {
         "server_time": frappe.utils.now()

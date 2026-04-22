@@ -358,7 +358,7 @@ def generate_token_secure(api_key, api_secret, app_key):
     return _gauth_instance.generate_token_secure(api_key, api_secret, app_key)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=False)
 def create_refresh_token(refresh_token):
     """Create a new access token using refresh token."""
     return _gauth_instance.create_refresh_token(refresh_token)
@@ -421,4 +421,44 @@ def create_attendence_request(employee, from_date, to_date,from_time,to_time,rea
             json.dumps({"message": f"Error creating attendance request: {str(e)}"}),
             status=500,
             mimetype="application/json"
+        )
+
+
+
+@frappe.whitelist(allow_guest=True)
+def create_refresh_token_new(refresh_token):
+    url = (
+        frappe.local.conf.host_name + "/api/method/frappe.integrations.oauth2.get_token"
+    )
+
+    payload = f"grant_type=refresh_token&refresh_token={refresh_token}"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    files = []
+    response = requests.post(url, headers=headers, data=payload, files=files)
+
+    if response.status_code == 200:
+        try:
+            message_json = json.loads(response.text)
+            new_message = {
+                "access_token": message_json["access_token"],
+                "expires_in": message_json["expires_in"],
+                "token_type": message_json["token_type"],
+                "scope": message_json["scope"],
+                "refresh_token": message_json["refresh_token"],
+            }
+
+            return Response(
+                json.dumps({"data": new_message}),
+                status=200,
+                mimetype="application/json",
+            )
+        except json.JSONDecodeError as e:
+            return Response(
+                json.dumps({"data": f"Error decoding JSON: {e}"}),
+                status=401,
+                mimetype="application/json",
+            )
+    else:
+        return Response(
+            json.dumps({"data": response.text}), status=401, mimetype="application/json"
         )
