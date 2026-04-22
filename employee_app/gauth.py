@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 from werkzeug.wrappers import Response
 from frappe.utils import getdate, nowdate
-
+from frappe.utils import random_string
 
 class GAuth:
     """Authentication handler for employee app token generation and management."""
@@ -358,7 +358,7 @@ def generate_token_secure(api_key, api_secret, app_key):
     return _gauth_instance.generate_token_secure(api_key, api_secret, app_key)
 
 
-@frappe.whitelist(allow_guest=False)
+@frappe.whitelist(allow_guest=True)
 def create_refresh_token(refresh_token):
     """Create a new access token using refresh token."""
     return _gauth_instance.create_refresh_token(refresh_token)
@@ -425,47 +425,3 @@ def create_attendence_request(employee, from_date, to_date,from_time,to_time,rea
 
 
 
-@frappe.whitelist(allow_guest=True)
-def create_refresh_token_new(refresh_token):
-    url = (
-        frappe.local.conf.host_name + "/api/method/frappe.integrations.oauth2.get_token"
-    )
-    frappe.log_error("log1",url)
-
-    payload = f"grant_type=refresh_token&refresh_token={refresh_token}"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    files = []
-    frappe.log_error("log2",payload)
-
-    response = requests.post(url, headers=headers, data=payload, files=files)
-    frappe.log_error("log3",response.text)
-    if response.status_code == 200:
-        try:
-            message_json = json.loads(response.text)
-            frappe.log_error("log4",message_json)
-            new_message = {
-                "access_token": message_json["access_token"],
-                "expires_in": message_json["expires_in"],
-                "token_type": message_json["token_type"],
-                "scope": message_json["scope"],
-                "refresh_token": message_json["refresh_token"],
-            }
-            frappe.log_error("log5",f"New message: {new_message}")
-
-            return Response(
-                json.dumps({"data": new_message}),
-                status=200,
-                mimetype="application/json",
-            )
-        except json.JSONDecodeError as e:
-            frappe.log_error("log6",f"Error decoding JSON: {e}")
-            return Response(
-                json.dumps({"data": f"Error decoding JSON: {e}"}),
-                status=401,
-                mimetype="application/json",
-            )
-    else:
-        frappe.log_error("log7",f"Error response: {response.text}")
-        return Response(
-            json.dumps({"data": response.text}), status=401, mimetype="application/json"
-        )
