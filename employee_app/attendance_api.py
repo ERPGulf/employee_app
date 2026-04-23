@@ -1017,6 +1017,13 @@ def Employee_break(
 ):
     """Add Employee Break log entry"""
     try:
+        if isinstance(timestamp, str):
+            timestamp1 = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+
+        date = timestamp1.date()
+        monthly_hours = get_monthly_break_hours(employee_field_value, date)
+        if monthly_hours >= 8:
+            return ("Monthly break limit (8 hours) exceeded")
         last_log = get_last_log(employee_field_value)
         checkin_id = None
 
@@ -1269,3 +1276,29 @@ def override_working_hours(doc, method):
     doc.custom_break_hours = break_hours
     doc.working_hours = round(net_hours, 2)
 
+
+@frappe.whitelist()
+def get_monthly_break_hours(employee, date):
+    from datetime import datetime
+    import calendar
+
+    if isinstance(date, str):
+        date = datetime.strptime(date, "%Y-%m-%d").date()
+
+    year = date.year
+    month = date.month
+
+    total_hours = 0
+
+
+    num_days = calendar.monthrange(year, month)[1]
+
+    for day in range(1, num_days + 1):
+        current_date = datetime(year, month, day).date()
+
+        daily_hours = get_break_hours(employee, current_date)
+
+        if daily_hours:
+            total_hours += daily_hours
+
+    return round(total_hours, 2)
