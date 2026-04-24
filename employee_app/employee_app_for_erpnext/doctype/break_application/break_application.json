@@ -33,8 +33,7 @@
   "salary_slip",
   "color",
   "column_break_17",
-  "letter_head",
-  "amended_from"
+  "letter_head"
  ],
  "fields": [
   {
@@ -180,26 +179,6 @@
    "print_hide": 1
   },
   {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Break Application",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Break Application",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
    "fieldname": "date",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -242,7 +221,7 @@
  "is_submittable": 1,
  "links": [],
  "max_attachments": 3,
- "modified": "2026-04-24 07:50:19.279998",
+ "modified": "2026-04-24 09:00:39.521781",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Break Application",
