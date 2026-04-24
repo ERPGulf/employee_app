@@ -22,7 +22,6 @@
   "total_break_hours",
   "column_break1",
   "description",
-  "leave_balance",
   "section_break_7",
   "leave_approver",
   "leave_approver_name",
@@ -104,13 +103,6 @@
    "fieldname": "description",
    "fieldtype": "Small Text",
    "label": "Reason"
-  },
-  {
-   "fieldname": "leave_balance",
-   "fieldtype": "Float",
-   "label": "Leave Balance Before Application",
-   "no_copy": 1,
-   "read_only": 1
   },
   {
    "fieldname": "section_break_7",
@@ -250,7 +242,7 @@
  "is_submittable": 1,
  "links": [],
  "max_attachments": 3,
- "modified": "2026-04-24 07:44:22.879211",
+ "modified": "2026-04-24 07:50:19.279998",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Break Application",
