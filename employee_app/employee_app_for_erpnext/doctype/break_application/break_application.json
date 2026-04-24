@@ -1,343 +1,333 @@
 {
- "actions": [],
- "allow_import": 1,
- "autoname": "naming_series:",
- "creation": "2026-04-08 07:29:44.613867",
- "description": "Apply / Approve Break",
- "doctype": "DocType",
- "document_type": "Document",
- "engine": "InnoDB",
- "field_order": [
-  "naming_series",
-  "employee",
-  "employee_name",
-  "column_break_4",
-  "company",
-  "department",
-  "reference_doc",
-  "section_break_5",
-  "date",
-  "time_in",
-  "time_out",
-  "total_break_hours",
-  "column_break1",
-  "description",
-  "section_break_7",
-  "leave_approver",
-  "leave_approver_name",
-  "follow_via_email",
-  "column_break_18",
-  "posting_date",
-  "status",
-  "column_break_psyg",
-  "salary_slip",
-  "color",
-  "column_break_17",
-  "letter_head",
-  "amended_from"
- ],
- "fields": [
-  {
-   "fieldname": "naming_series",
-   "fieldtype": "Select",
-   "label": "Series",
-   "no_copy": 1,
-   "options": "HR-LAP-.YYYY.-",
-   "print_hide": 1,
-   "reqd": 1,
-   "set_only_once": 1
-  },
-  {
-   "fetch_from": "reference_doc.employee",
-   "fieldname": "employee",
-   "fieldtype": "Link",
-   "in_global_search": 1,
-   "in_standard_filter": 1,
-   "label": "Employee",
-   "options": "Employee",
-   "reqd": 1,
-   "search_index": 1
-  },
-  {
-   "fetch_from": "employee.employee_name",
-   "fieldname": "employee_name",
-   "fieldtype": "Data",
-   "in_global_search": 1,
-   "label": "Employee Name",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_4",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "employee.company",
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company",
-   "read_only": 1,
-   "remember_last_selected_value": 1,
-   "reqd": 1
-  },
-  {
-   "fetch_from": "employee.department",
-   "fieldname": "department",
-   "fieldtype": "Link",
-   "label": "Department",
-   "options": "Department",
-   "read_only": 1
-  },
-  {
-   "fieldname": "section_break_5",
-   "fieldtype": "Section Break",
-   "label": "Dates & Reason"
-  },
-  {
-   "fieldname": "column_break1",
-   "fieldtype": "Column Break",
-   "print_width": "50%",
-   "width": "50%"
-  },
-  {
-   "fieldname": "description",
-   "fieldtype": "Small Text",
-   "label": "Reason"
-  },
-  {
-   "fieldname": "section_break_7",
-   "fieldtype": "Section Break",
-   "label": "Approval"
-  },
-  {
-   "fieldname": "leave_approver",
-   "fieldtype": "Link",
-   "label": "Break Approver",
-   "options": "User"
-  },
-  {
-   "fieldname": "leave_approver_name",
-   "fieldtype": "Data",
-   "label": "Break Approver Name",
-   "read_only": 1
-  },
-  {
-   "allow_on_submit": 1,
-   "default": "1",
-   "fieldname": "follow_via_email",
-   "fieldtype": "Check",
-   "label": "Follow via Email",
-   "print_hide": 1
-  },
-  {
-   "fieldname": "column_break_18",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "Today",
-   "fieldname": "posting_date",
-   "fieldtype": "Date",
-   "label": "Posting Date",
-   "no_copy": 1,
-   "reqd": 1
-  },
-  {
-   "default": "Open",
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "in_standard_filter": 1,
-   "label": "Status",
-   "no_copy": 1,
-   "options": "Open\nApproved\nRejected\nCancelled",
-   "permlevel": 1,
-   "reqd": 1
-  },
-  {
-   "fieldname": "salary_slip",
-   "fieldtype": "Link",
-   "label": "Salary Slip",
-   "options": "Salary Slip",
-   "print_hide": 1
-  },
-  {
-   "allow_on_submit": 1,
-   "fieldname": "color",
-   "fieldtype": "Color",
-   "label": "Color",
-   "print_hide": 1
-  },
-  {
-   "fieldname": "column_break_17",
-   "fieldtype": "Column Break"
-  },
-  {
-   "allow_on_submit": 1,
-   "fieldname": "letter_head",
-   "fieldtype": "Link",
-   "ignore_user_permissions": 1,
-   "label": "Letter Head",
-   "options": "Letter Head",
-   "print_hide": 1
-  },
-  {
-   "fieldname": "date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Date",
-   "reqd": 1,
-   "search_index": 1
-  },
-  {
-   "fieldname": "reference_doc",
-   "fieldtype": "Link",
-   "label": "Reference Doc",
-   "options": "Employee Break"
-  },
-  {
-   "fieldname": "total_break_hours",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Total Break Hours",
-   "no_copy": 1
-  },
-  {
-   "fieldname": "column_break_psyg",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "time_in",
-   "fieldtype": "Datetime",
-   "in_list_view": 1,
-   "label": "Time IN ",
-   "search_index": 1
-  },
-  {
-   "fieldname": "time_out",
-   "fieldtype": "Datetime",
-   "label": "Time OUT ",
-   "search_index": 1
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "ignore_user_permissions": 1,
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Break Application",
-   "print_hide": 1,
-   "read_only": 1
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "ignore_user_permissions": 1,
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Break Application",
-   "print_hide": 1,
-   "read_only": 1
-  }
- ],
- "icon": "fa fa-calendar",
- "is_submittable": 1,
- "links": [],
- "max_attachments": 3,
- "modified": "2026-04-24 09:30:44.452037",
- "modified_by": "Administrator",
- "module": "Employee app for ERPNext",
- "name": "Break Application",
- "naming_rule": "By \"Naming Series\" field",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Employee",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "amend": 1,
-   "cancel": 1,
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "HR Manager",
-   "share": 1,
-   "submit": 1,
-   "write": 1
-  },
-  {
-   "permlevel": 1,
-   "read": 1,
-   "role": "All"
-  },
-  {
-   "amend": 1,
-   "cancel": 1,
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "HR User",
-   "share": 1,
-   "submit": 1,
-   "write": 1
-  },
-  {
-   "amend": 1,
-   "cancel": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Leave Approver",
-   "share": 1,
-   "submit": 1,
-   "write": 1
-  },
-  {
-   "permlevel": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Leave Approver",
-   "write": 1
-  },
-  {
-   "permlevel": 1,
-   "read": 1,
-   "report": 1,
-   "role": "HR User",
-   "write": 1
-  },
-  {
-   "email": 1,
-   "export": 1,
-   "permlevel": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "HR Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "rows_threshold_for_grid_search": 20,
- "search_fields": "employee,employee_name",
- "sort_field": "creation",
- "sort_order": "DESC",
- "states": [],
- "timeline_field": "employee",
- "title_field": "employee_name"
+    "actions": [],
+    "allow_import": 1,
+    "autoname": "naming_series:",
+    "creation": "2026-04-08 07:29:44.613867",
+    "description": "Apply / Approve Break",
+    "doctype": "DocType",
+    "document_type": "Document",
+    "engine": "InnoDB",
+    "field_order": [
+        "naming_series",
+        "employee",
+        "employee_name",
+        "column_break_4",
+        "company",
+        "department",
+        "reference_doc",
+        "section_break_5",
+        "date",
+        "time_in",
+        "time_out",
+        "total_break_hours",
+        "column_break1",
+        "description",
+        "section_break_7",
+        "leave_approver",
+        "leave_approver_name",
+        "follow_via_email",
+        "column_break_18",
+        "posting_date",
+        "status",
+        "column_break_psyg",
+        "salary_slip",
+        "color",
+        "column_break_17",
+        "letter_head",
+        "amended_from"
+    ],
+    "fields": [
+        {
+            "fieldname": "naming_series",
+            "fieldtype": "Select",
+            "label": "Series",
+            "no_copy": 1,
+            "options": "HR-LAP-.YYYY.-",
+            "print_hide": 1,
+            "reqd": 1,
+            "set_only_once": 1
+        },
+        {
+            "fetch_from": "reference_doc.employee",
+            "fieldname": "employee",
+            "fieldtype": "Link",
+            "in_global_search": 1,
+            "in_standard_filter": 1,
+            "label": "Employee",
+            "options": "Employee",
+            "reqd": 1,
+            "search_index": 1
+        },
+        {
+            "fetch_from": "employee.employee_name",
+            "fieldname": "employee_name",
+            "fieldtype": "Data",
+            "in_global_search": 1,
+            "label": "Employee Name",
+            "read_only": 1
+        },
+        {
+            "fieldname": "column_break_4",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fetch_from": "employee.company",
+            "fieldname": "company",
+            "fieldtype": "Link",
+            "label": "Company",
+            "options": "Company",
+            "read_only": 1,
+            "remember_last_selected_value": 1,
+            "reqd": 1
+        },
+        {
+            "fetch_from": "employee.department",
+            "fieldname": "department",
+            "fieldtype": "Link",
+            "label": "Department",
+            "options": "Department",
+            "read_only": 1
+        },
+        {
+            "fieldname": "section_break_5",
+            "fieldtype": "Section Break",
+            "label": "Dates & Reason"
+        },
+        {
+            "fieldname": "column_break1",
+            "fieldtype": "Column Break",
+            "print_width": "50%",
+            "width": "50%"
+        },
+        {
+            "fieldname": "description",
+            "fieldtype": "Small Text",
+            "label": "Reason"
+        },
+        {
+            "fieldname": "section_break_7",
+            "fieldtype": "Section Break",
+            "label": "Approval"
+        },
+        {
+            "fieldname": "leave_approver",
+            "fieldtype": "Link",
+            "label": "Break Approver",
+            "options": "User"
+        },
+        {
+            "fieldname": "leave_approver_name",
+            "fieldtype": "Data",
+            "label": "Break Approver Name",
+            "read_only": 1
+        },
+        {
+            "allow_on_submit": 1,
+            "default": "1",
+            "fieldname": "follow_via_email",
+            "fieldtype": "Check",
+            "label": "Follow via Email",
+            "print_hide": 1
+        },
+        {
+            "fieldname": "column_break_18",
+            "fieldtype": "Column Break"
+        },
+        {
+            "default": "Today",
+            "fieldname": "posting_date",
+            "fieldtype": "Date",
+            "label": "Posting Date",
+            "no_copy": 1,
+            "reqd": 1
+        },
+        {
+            "default": "Open",
+            "fieldname": "status",
+            "fieldtype": "Select",
+            "in_standard_filter": 1,
+            "label": "Status",
+            "no_copy": 1,
+            "options": "Open\nApproved\nRejected\nCancelled",
+            "permlevel": 1,
+            "reqd": 1
+        },
+        {
+            "fieldname": "salary_slip",
+            "fieldtype": "Link",
+            "label": "Salary Slip",
+            "options": "Salary Slip",
+            "print_hide": 1
+        },
+        {
+            "allow_on_submit": 1,
+            "fieldname": "color",
+            "fieldtype": "Color",
+            "label": "Color",
+            "print_hide": 1
+        },
+        {
+            "fieldname": "column_break_17",
+            "fieldtype": "Column Break"
+        },
+        {
+            "allow_on_submit": 1,
+            "fieldname": "letter_head",
+            "fieldtype": "Link",
+            "ignore_user_permissions": 1,
+            "label": "Letter Head",
+            "options": "Letter Head",
+            "print_hide": 1
+        },
+        {
+            "fieldname": "date",
+            "fieldtype": "Date",
+            "in_list_view": 1,
+            "label": "Date",
+            "reqd": 1,
+            "search_index": 1
+        },
+        {
+            "fieldname": "reference_doc",
+            "fieldtype": "Link",
+            "label": "Reference Doc",
+            "options": "Employee Break"
+        },
+        {
+            "fieldname": "total_break_hours",
+            "fieldtype": "Float",
+            "in_list_view": 1,
+            "label": "Total Break Hours",
+            "no_copy": 1
+        },
+        {
+            "fieldname": "column_break_psyg",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "time_in",
+            "fieldtype": "Datetime",
+            "in_list_view": 1,
+            "label": "Time IN ",
+            "search_index": 1
+        },
+        {
+            "fieldname": "time_out",
+            "fieldtype": "Datetime",
+            "label": "Time OUT ",
+            "search_index": 1
+        },
+        {
+            "fieldname": "amended_from",
+            "fieldtype": "Link",
+            "ignore_user_permissions": 1,
+            "label": "Amended From",
+            "no_copy": 1,
+            "options": "Break Application",
+            "print_hide": 1,
+            "read_only": 1
+        }
+    ],
+    "icon": "fa fa-calendar",
+    "is_submittable": 1,
+    "links": [],
+    "max_attachments": 3,
+    "modified": "2026-04-24 09:30:44.452037",
+    "modified_by": "Administrator",
+    "module": "Employee app for ERPNext",
+    "name": "Break Application",
+    "naming_rule": "By \"Naming Series\" field",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Employee",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "amend": 1,
+            "cancel": 1,
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "HR Manager",
+            "share": 1,
+            "submit": 1,
+            "write": 1
+        },
+        {
+            "permlevel": 1,
+            "read": 1,
+            "role": "All"
+        },
+        {
+            "amend": 1,
+            "cancel": 1,
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "HR User",
+            "share": 1,
+            "submit": 1,
+            "write": 1
+        },
+        {
+            "amend": 1,
+            "cancel": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Leave Approver",
+            "share": 1,
+            "submit": 1,
+            "write": 1
+        },
+        {
+            "permlevel": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Leave Approver",
+            "write": 1
+        },
+        {
+            "permlevel": 1,
+            "read": 1,
+            "report": 1,
+            "role": "HR User",
+            "write": 1
+        },
+        {
+            "email": 1,
+            "export": 1,
+            "permlevel": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "HR Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "row_format": "Dynamic",
+    "rows_threshold_for_grid_search": 20,
+    "search_fields": "employee,employee_name",
+    "sort_field": "creation",
+    "sort_order": "DESC",
+    "states": [],
+    "timeline_field": "employee",
+    "title_field": "employee_name"
 }
