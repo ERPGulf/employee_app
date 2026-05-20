@@ -20,11 +20,11 @@ fixtures = [
 
 
 doc_events = {
-    # "Employee": {
-    #     "on_update": "employee_app.user_qa_code.create_qr_code",
-    #     "on_trash": "employee_app.user_qa_code.delete_qr_code_file",
-    #     "validate": "employee_app.gauth.validate_location_restriction"
-    # },
+    "Employee": {
+        "on_update": "employee_app.user_qa_code.create_qr_code",
+        "on_trash": "employee_app.user_qa_code.delete_qr_code_file",
+        "validate": "employee_app.gauth.validate_location_restriction"
+    },
     "Employee Checkin": {
         "after_insert": "employee_app.attendance_api.employee_checkin_handler"
     },
