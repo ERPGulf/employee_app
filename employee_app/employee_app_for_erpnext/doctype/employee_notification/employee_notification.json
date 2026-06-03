@@ -49,15 +49,15 @@
   },
   {
    "fieldname": "topic",
-   "fieldtype": "Link",
-   "label": "Topic",
+   "fieldtype": "Small Text",
+   "label": "Topic or Token",
    "options": "Topic"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-14 07:48:25.653475",
+ "modified": "2026-06-03 07:38:47.070663",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Employee Notification",
