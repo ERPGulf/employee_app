@@ -35,5 +35,8 @@ doc_events = {
         "validate": "employee_app.gauth.validate_coordinates"
     }
 }
+doctype_js = {
+    "Employee Notification": "public/fetch_employee.js"
+}
 
 

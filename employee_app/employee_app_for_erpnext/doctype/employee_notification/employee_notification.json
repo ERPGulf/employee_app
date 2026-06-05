@@ -32,9 +32,9 @@
   },
   {
    "fieldname": "employee",
-   "fieldtype": "Link",
+   "fieldtype": "Table",
    "label": "Employee",
-   "options": "Employee"
+   "options": "Employee Table"
   },
   {
    "fieldname": "tittle",
@@ -57,7 +57,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-03 07:38:47.070663",
+ "modified": "2026-06-04 14:49:09.900551",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Employee Notification",

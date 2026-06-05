@@ -305,6 +305,7 @@ def add_log_based_on_employee_field(
 
 @frappe.whitelist()
 def employee(employee_code: str = None, custom_in: str = None):
+
     if employee_code:
         if frappe.db.exists("Employee", employee_code):
             if custom_in is not None:
@@ -954,12 +955,31 @@ def get_leave_type(employee: str):
 
 
 @frappe.whitelist()
-def get_notification(employee: str):
-    notifications = frappe.db.get_all(
-        "Employee Notification",
-        fields=["name", "tittle as title", "notification", "read", "date", "employee", "type"],
+def get_notification(employee):
+
+    notification_names = frappe.get_all(
+        "Employee Table",
         filters={"employee": employee},
+        pluck="parent"
     )
+
+    if not notification_names:
+        return []
+
+    notifications = frappe.get_all(
+        "Employee Notification",
+        filters={"name": ["in", notification_names]},
+        fields=[
+            "name",
+            "tittle as title",
+            "notification",
+            "read",
+            "date",
+            "type"
+        ],
+        order_by="date desc"
+    )
+
     return notifications
 
 
@@ -1282,6 +1302,7 @@ def override_working_hours(doc, method):
 
 @frappe.whitelist()
 def get_monthly_break_hours(employee, date):
+
     from datetime import datetime
     import calendar
 
@@ -1305,3 +1326,39 @@ def get_monthly_break_hours(employee, date):
             total_hours += daily_hours
 
     return round(total_hours, 2)
+
+
+@frappe.whitelist(allow_guest=True)
+def get_notification1(value):
+
+    # Check topic first
+    employees = frappe.get_all(
+        "Topic Table",
+        filters={"topic": value},
+        fields=["parent"]
+    )
+
+    if employees:
+        return {
+            "matched_by": "topic",
+            "employee_ids": [row.parent for row in employees]
+        }
+
+    # Check token if no topic match
+    employee = frappe.db.get_value(
+        "Employee",
+        {"custom_token": value},
+        "name"
+    )
+
+    if employee:
+        return {
+            "matched_by": "token",
+            "employee_ids": [employee]
+        }
+
+    return {
+        "matched_by": None,
+        "employee_ids": [],
+        "message": "No employee found"
+    }
