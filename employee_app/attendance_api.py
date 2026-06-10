@@ -290,7 +290,7 @@ def add_log_based_on_employee_field(
             "time": timestamp,
             "device_id": device_id,
             "log_type": log_type,
-            "custom_employee_chekin_location": location,
+            "custom_employee_chekin_or_checkout_location": location,
         })
 
         doc.insert(ignore_permissions=True)
@@ -1062,7 +1062,7 @@ def Employee_break(
             "time": timestamp,
             "device_id": device_id,
             "log_type": log_type,
-            "custom_employee_chekin_location": location,
+            "custom_employee_checkin_or_checkout_location": location,
             "employee_checkin": checkin_id,
         })
 
@@ -1331,7 +1331,7 @@ def get_monthly_break_hours(employee, date):
 @frappe.whitelist(allow_guest=True)
 def get_notification1(value):
 
-    # Check topic first
+
     employees = frappe.get_all(
         "Topic Table",
         filters={"topic": value},
