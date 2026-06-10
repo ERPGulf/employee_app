@@ -284,17 +284,42 @@ def add_log_based_on_employee_field(
         if log_type:
             log_type = get_log_type(employee_field_value, timestamp, log_type)
 
+        checkin_location = None
+        unrestricted_checkin_location = None
+
+        if location:
+            unrestricted = frappe.db.get_value(
+                "Employee", employee_field_value, "custom_unrestricted_checkout_location"
+            )
+            if unrestricted:
+
+                location_in_table = frappe.db.exists(
+                    "Employee Location Child Table",
+                    {
+                        "parent": employee_field_value,
+                        "parenttype": "Employee",
+                        "location": location,
+                    },
+                )
+                if location_in_table:
+                    checkin_location = location
+                else:
+                    unrestricted_checkin_location = location
+            else:
+
+                checkin_location = location
+
         doc = frappe.get_doc({
             "doctype": "Employee Checkin",
             "employee": employee_field_value,
             "time": timestamp,
             "device_id": device_id,
             "log_type": log_type,
-            "custom_employee_chekin_or_checkout_location": location,
+            "custom_employee_chekin_location": checkin_location,
+            "custom_employee_chekin_or_checkout_location": unrestricted_checkin_location,
         })
 
         doc.insert(ignore_permissions=True)
-        # frappe.db.commit() removed — Frappe handles transaction commit automatically
 
         return doc
 
