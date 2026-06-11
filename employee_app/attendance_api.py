@@ -271,6 +271,24 @@ def upload_file():
     return urls
 
 
+def _get_compound_code_from_coordinates(coordinates: str) -> str:
+    """Call Google Maps Geocoding API and return plus_code.compound_code for given lat,lng string."""
+    try:
+        import requests as _requests
+        api_key = frappe.conf.get("google_maps_api_key") or "AIzaSyBnNd7jP-v57PRQN7VlIT5tyqorSM5MfSg"
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={coordinates}&key={api_key}"
+        resp = _requests.get(url, timeout=10)
+        data = resp.json()
+        if data.get("status") == "OK":
+            plus_code = data.get("plus_code", {})
+            compound_code = plus_code.get("compound_code")
+            if compound_code:
+                return compound_code
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Google Maps Geocoding Error")
+    return coordinates
+
+
 @frappe.whitelist()
 def add_log_based_on_employee_field(
     employee_field_value: str,
@@ -304,7 +322,7 @@ def add_log_based_on_employee_field(
                 if location_in_table:
                     checkin_location = location
                 else:
-                    unrestricted_checkin_location = location
+                    unrestricted_checkin_location = _get_compound_code_from_coordinates(location)
             else:
 
                 checkin_location = location
