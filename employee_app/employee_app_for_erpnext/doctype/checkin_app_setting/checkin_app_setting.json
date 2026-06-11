@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "company",
+  "api_key",
   "section_break_iwiu",
   "column_break_wwrs",
   "shortcut_1",
@@ -141,13 +142,18 @@
   {
    "fieldname": "column_break_ooig",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Data",
+   "label": "Google Map Api Key"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-05 10:52:15.167246",
+ "modified": "2026-06-11 09:34:50.716087",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Checkin App Setting",
