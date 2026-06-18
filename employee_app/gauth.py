@@ -198,6 +198,8 @@ class GAuth:
             try:
                 app_key = base64.b64decode(app_key).decode("utf-8")
 
+
+
             except Exception as e:
                 return Response(
                     json.dumps(
@@ -212,6 +214,7 @@ class GAuth:
                 {"app_name": app_key},
                 ["client_id", "client_secret", "user"],
             )
+
             doc = frappe.db.get_value(
                 "OAuth Client",
                 {"app_name": app_key},
@@ -357,6 +360,7 @@ def whoami():
 
 @frappe.whitelist(allow_guest=True)
 def generate_token_secure(api_key, api_secret, app_key):
+
     """Generate token with secure parameters."""
     return _gauth_instance.generate_token_secure(api_key, api_secret, app_key)
 

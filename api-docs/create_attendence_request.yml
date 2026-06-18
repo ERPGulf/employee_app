@@ -1,0 +1,32 @@
+info:
+  name: create_attendence_request
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.gauth.create_attendence_request
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee
+        value: HR-EMP-00003
+      - name: from_date
+        value: 2026-06-16
+      - name: to_date
+        value: 2026-06-16
+      - name: from_time
+        value: 08:11:11
+      - name: to_time
+        value: 16:11:11
+      - name: reason
+        value: Work From Home
+  auth:
+    type: bearer
+    token: kXCEohkrAJoG6hZHTQPVct4AdXnjcJ
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,15 @@
+info:
+  name: shortcut_!
+  type: http
+  seq: 22
+
+http:
+  method: get
+  url: https://aysha.erpgulf.com/api/method/employee_app.attendance_api.health_card_details
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

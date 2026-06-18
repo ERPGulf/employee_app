@@ -1,0 +1,31 @@
+info:
+  name: create complaint
+  type: http
+  seq: 27
+
+http:
+  method: post
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.create_complaint
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+    - name: Authorization
+      value: Bearer QEj2moTEdoZ79s6ZKt5B9jOnYC4fya
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee
+        value: HR-EMP-00003
+      - name: date
+        value: 2026-06-01
+      - name: message
+        value: testing
+  auth:
+    type: bearer
+    token: mLzKQMuWeVYJV4NGBPVsU69yP3dvQa
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

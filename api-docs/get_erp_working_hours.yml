@@ -1,0 +1,30 @@
+info:
+  name: get_erp_working_hours
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.attendance_api.get_employee_working_hours
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee
+        value: HR-EMP-00003
+      - name: date
+        value: 2026-06-17
+      - name: check_in_out_type
+        value: Alternating entries as IN and OUT during the same shift
+        disabled: true
+      - name: working_hours_calc_type
+        value: First Check-in and Last Check-out
+        disabled: true
+  auth:
+    type: bearer
+    token: THAyql4SJu6WNN6M8X4Hj0Ev3Td83u
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

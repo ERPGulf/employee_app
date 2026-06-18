@@ -1,0 +1,44 @@
+info:
+  name: create_expense_claim
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.attendance_api.create_expense_claim
+  headers:
+    - name: Authorization
+      value: Bearer WVUu9hL5KheN2TjJRC13zrsx7mOHtv
+    - name: Cookie
+      value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
+  body:
+    type: multipart-form
+    data:
+      - name: employee
+        type: text
+        value: HR-EMP-00003
+      - name: expense_date
+        type: text
+        value: 2026-06-16 10:56:18
+      - name: expense_type
+        type: text
+        value: Food
+      - name: amount
+        type: text
+        value: "10"
+      - name: description
+        type: text
+        value: Lunch expense
+      - name: file_name
+        type: file
+        value:
+          - C:\Users\HP\OneDrive\Pictures\Screenshots\Screenshot 2026-06-11 133721.png
+  auth:
+    type: bearer
+    token: AADAZwiGoKkWdD86gP9QWqKE0AxJJZ
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

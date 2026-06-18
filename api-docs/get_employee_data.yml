@@ -1,0 +1,27 @@
+info:
+  name: get_employee_data
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.get_employee_data
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+    - name: Authorization
+      value: Bearer tggDlIFmg8l7NqG1zHlUXyl5rvvCla
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee_id
+        value: HR-EMP-00003
+  auth:
+    type: bearer
+    token: THAyql4SJu6WNN6M8X4Hj0Ev3Td83u
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

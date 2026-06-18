@@ -1,0 +1,27 @@
+info:
+  name: leave_type
+  type: http
+  seq: 17
+
+http:
+  method: get
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.get_leave_type
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+    - name: Authorization
+      value: Bearer hDtBIPZHOpnkqvZ5dmr7KIJ1zHwkxL
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee
+        value: HR-EMP-00003
+  auth:
+    type: bearer
+    token: c7854u0Hy4weGC66HtgBQzafNF9sRv
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
