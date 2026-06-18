@@ -18,7 +18,6 @@ fixtures = [
     {"dt": "Leave Type", "filters": [["name", "in", ["Annual", "Remote", "Out Of Office"]]]}
 ]
 
-
 doc_events = {
     "Employee": {
         "on_update": "employee_app.user_qa_code.create_qr_code",

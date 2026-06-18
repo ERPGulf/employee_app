@@ -272,7 +272,7 @@ def upload_file():
 
 
 def _get_compound_code_from_coordinates(coordinates: str) -> str:
-    """Call Google Maps Geocoding API and return plus_code.compound_code for given lat,lng string."""
+
     try:
         import requests as _requests
         setting=frappe.get_doc("Checkin App Setting")
