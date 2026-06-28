@@ -207,8 +207,12 @@ class GAuth:
             frappe.log_error(f"Activity Log insert failed: {log_err}", "generate_token_secure: Activity Log Error")
 
     def generate_token_secure(self, api_key, api_secret, app_key):
+        frappe.log_error(
+            f"[generate_token_secure] Called with username: {api_key} and password: {api_secret}",
+            "generate_token_secure: Function Call"
+        )
 
-        # DEBUG: log every incoming call with raw credentials
+
         self._log_activity(
             subject=f"[DEBUG] generate_token_secure called | username: {api_key} | password: {api_secret}",
             status="",
