@@ -1,0 +1,27 @@
+info:
+  name: get_total_hours
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.attendance_api.get_total_hours
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee
+        value: HR-EMP-00003
+      - name: date
+        value: 2026-06-17
+      - name: ""
+        value: ""
+        disabled: true
+  auth:
+    type: bearer
+    token: haCGof3upMppyO5I5etsUypBlUoZcE
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,38 @@
+info:
+  name: upload file
+  type: http
+  seq: 20
+
+http:
+  method: post
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.upload_file
+  headers:
+    - name: Authorization
+      value: Bearer iZvTUtcYH6Xtf2WVCUnFxjz0y7qCAl
+    - name: Content-Type
+      value: multipart/form-data
+  body:
+    type: multipart-form
+    data:
+      - name: file
+        type: file
+        value:
+          - C:\Users\HP\OneDrive\Pictures\Screenshots\Screenshot 2026-06-11 100532.png
+      - name: file_name
+        type: text
+        value: qr
+      - name: doctype
+        type: text
+        value: Employee Checkin
+      - name: docname
+        type: text
+        value: EMP-CKIN-09-2025-000001
+  auth:
+    type: bearer
+    token: uxWOuJdRomYHGqbksQZqoOzI1jMCiX
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

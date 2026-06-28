@@ -1,0 +1,17 @@
+info:
+  name: server_time
+  type: http
+  seq: 21
+
+http:
+  method: get
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.get_server_time
+  auth:
+    type: bearer
+    token: uxWOuJdRomYHGqbksQZqoOzI1jMCiX
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

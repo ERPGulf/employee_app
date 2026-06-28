@@ -1,0 +1,28 @@
+info:
+  name: generate_token_secure
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.gauth.generate_token_secure
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+    - name: Cookie
+      value: sid=Guest
+  body:
+    type: form-urlencoded
+    data:
+      - name: api_key
+        value: Administrator
+      - name: api_secret
+        value: Friday2000@T
+      - name: app_key
+        value: dGVuYW50X2VycGd1bGY=
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

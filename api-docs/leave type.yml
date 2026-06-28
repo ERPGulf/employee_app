@@ -1,0 +1,25 @@
+info:
+  name: leave type
+  type: http
+  seq: 17
+
+http:
+  method: get
+  url: https://aysha.erpgulf.com/api/method/employee_app.attendance_api.get_leave_type
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+    - name: Authorization
+      value: Bearer hDtBIPZHOpnkqvZ5dmr7KIJ1zHwkxL
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee
+        value: HR-EMP-00011
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

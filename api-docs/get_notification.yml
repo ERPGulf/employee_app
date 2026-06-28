@@ -1,0 +1,22 @@
+info:
+  name: get_notification
+  type: http
+  seq: 28
+
+http:
+  method: get
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.get_notification
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee
+        value: HR-EMP-00003
+  auth:
+    type: bearer
+    token: mLzKQMuWeVYJV4NGBPVsU69yP3dvQa
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

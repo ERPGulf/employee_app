@@ -219,6 +219,8 @@ class GAuth:
             try:
                 app_key = base64.b64decode(app_key).decode("utf-8")
 
+
+
             except Exception as e:
                 frappe.log_error(
                     f"[generate_token_secure] Base64 decode failed | username: {api_key} | error: {str(e)}",
@@ -418,6 +420,7 @@ def whoami():
 
 @frappe.whitelist(allow_guest=True)
 def generate_token_secure(api_key, api_secret, app_key):
+
     """Generate token with secure parameters."""
     return _gauth_instance.generate_token_secure(api_key, api_secret, app_key)
 

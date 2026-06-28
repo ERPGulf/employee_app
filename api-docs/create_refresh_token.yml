@@ -1,0 +1,27 @@
+info:
+  name: create_refresh_token
+  type: http
+  seq: 11
+
+http:
+  method: GET
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.gauth.create_refresh_token
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+    - name: Authorization
+      value: Bearer Pk9q9SSFsIKgEtD3CCY7YWCtU6MbUf
+      disabled: true
+    - name: Cookie
+      value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
+  body:
+    type: form-urlencoded
+    data:
+      - name: refresh_token
+        value: fUkfDAWMRZXIcl81aOwU1eCtnIFZ1P
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

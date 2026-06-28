@@ -1146,6 +1146,7 @@ def get_employee_working_hours(employee, date):
         order_by="time asc"
     )
 
+
     if not logs:
         return 0
 

@@ -1,0 +1,35 @@
+info:
+  name: add_log_based_on_employee_field
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.add_log_based_on_employee_field
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+    - name: Authorization
+      value: Bearer Pk9q9SSFsIKgEtD3CCY7YWCtU6MbUf
+    - name: Cookie
+      value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee_field_value
+        value: HR-EMP-00003
+      - name: timestamp
+        value: 2026-06-17 12:46:00
+      - name: device_id
+        value: "09267"
+      - name: log_type
+        value: IN
+  auth:
+    type: bearer
+    token: THAyql4SJu6WNN6M8X4Hj0Ev3Td83u
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
