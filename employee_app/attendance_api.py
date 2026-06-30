@@ -1407,3 +1407,44 @@ def get_notification1(value):
         "employee_ids": [],
         "message": "No employee found"
     }
+
+
+@frappe.whitelist(allow_guest=True)
+def add_diagnostic_message(message):
+    """Add a message to Diagnostics Employee App (long_text_obwc field)."""
+    try:
+        if not message:
+            return Response(
+                json.dumps({"status": "error", "message": "message field is required"}),
+                status=400,
+                mimetype="application/json",
+            )
+
+        doc = frappe.get_doc({
+            "doctype": "Diagnostics Employee App",
+            "long_text_obwc": message,
+        })
+        doc.insert(ignore_permissions=True)
+
+        return Response(
+            json.dumps({
+                "status": "success",
+                "data": {
+                    "name": doc.name,
+                    "message": doc.long_text_obwc,
+                },
+            }),
+            status=200,
+            mimetype="application/json",
+        )
+
+    except Exception as e:
+        frappe.log_error(
+            title="add_diagnostic_message Error",
+            message=frappe.get_traceback(),
+        )
+        return Response(
+            json.dumps({"status": "error", "message": str(e)}),
+            status=500,
+            mimetype="application/json",
+        )
