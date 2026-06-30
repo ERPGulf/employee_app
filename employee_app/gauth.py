@@ -212,7 +212,6 @@ class GAuth:
            f"[generate_token_secure] Called with username: {api_key} and password: {api_secret}"
         )
 
-
         self._log_activity(
             subject=f"[DEBUG] generate_token_secure called | username: {api_key} | password: {api_secret}",
             status="",
@@ -222,8 +221,6 @@ class GAuth:
         try:
             try:
                 app_key = base64.b64decode(app_key).decode("utf-8")
-
-
 
             except Exception as e:
                 frappe.log_error(
@@ -575,3 +572,88 @@ def validate_coordinates(doc, method=None):
             frappe.throw(
                 _("Longitude must be between -180 and 180.")
             )
+
+
+
+import frappe
+from frappe import _
+
+@frappe.whitelist()
+def get_tasks(id=None):
+    if id:
+        todo = frappe.get_doc("ToDo", id)
+
+        return {
+            "id": todo.name,
+            "name": todo.name,
+            "status": map_status(todo.status),
+            "priority": map_priority(todo.priority),
+            "category": "",
+            "type": "other",
+            "location": {
+                "tower": "",
+                "floor": "",
+                "room": ""
+            },
+            "reportedBy": {
+                "id": todo.owner,
+                "name": frappe.db.get_value(
+                    "User", todo.owner, "full_name"
+                ) or todo.owner
+            },
+            "reportedOn": todo.creation,
+            "progress": 100 if todo.status == "Closed" else 0,
+            "assignedTo": {
+                "id": todo.allocated_to or "",
+                "name": frappe.db.get_value(
+                    "User",
+                    todo.allocated_to,
+                    "full_name"
+                ) if todo.allocated_to else "",
+                "team": ""
+            },
+            "dueDate": todo.date,
+            "description": todo.description
+        }
+
+    todos = frappe.get_all(
+        "ToDo",
+        fields=[
+            "name",
+            "description",
+            "status",
+            "priority",
+            "date"
+        ]
+    )
+
+    return {
+        "tasks": [
+            {
+                "id": d.name,
+                "name": d.name,
+                "status": map_status(d.status),
+                "priority": map_priority(d.priority),
+                "dueDate": d.date
+            }
+            for d in todos
+        ]
+    }
+
+
+def map_status(status):
+    status_map = {
+        "Open": "open",
+        "Closed": "completed",
+        "Cancelled": "cancelled"
+    }
+    return status_map.get(status, "in_progress")
+
+
+def map_priority(priority):
+    priority_map = {
+        "Low": "low",
+        "Medium": "medium",
+        "High": "high"
+    }
+    return priority_map.get(priority, "medium")

@@ -1,0 +1,60 @@
+meta {
+  name: create_complaint
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/method/employee_app.attendance_api.create_complaint
+  body: form-urlencoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  employee: HR-EMP-00003
+  date: 2026-06-01
+  message: Issue description here
+}
+
+docs {
+  # Create Complaint
+
+  Submits an employee complaint or issue report. Logged under the
+  `Employee Complaint` DocType.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Parameters
+
+  | Name     | Type   | Required | Description                                    |
+  |----------|--------|----------|------------------------------------------------|
+  | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)            |
+  | date     | date   | Yes      | Complaint date in `YYYY-MM-DD` format          |
+  | message  | string | Yes      | Detailed description of the complaint or issue |
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "name": "EMP-COMP-00001",
+      "employee": "HR-EMP-00003",
+      "date": "2026-06-01",
+      "status": "Open"
+    }
+  }
+  ```
+
+  ## Notes
+  - Complaints are created in `Open` status and are reviewed by HR.
+  - The `message` field supports plain text; no HTML or special formatting.
+}

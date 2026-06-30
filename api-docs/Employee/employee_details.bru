@@ -1,0 +1,56 @@
+meta {
+  name: employee_details
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/method/employee_app.attendance_api.employee
+  body: form-urlencoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:form-urlencoded {
+  employee_code: HR-EMP-00003
+}
+
+docs {
+  # Employee Details
+
+  Fetches the full ERPNext Employee document record by employee code.
+  Returns all standard and custom fields on the Employee DocType.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Parameters
+
+  | Name          | Type   | Required | Description                                       |
+  |---------------|--------|----------|---------------------------------------------------|
+  | employee_code | string | No       | Employee ID (e.g., `HR-EMP-00003`). If omitted, returns the logged-in employee's record. |
+  | custom_in     | string | No       | Optional filter for a custom field value.         |
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "name": "HR-EMP-00003",
+      "employee_name": "John Doe",
+      "status": "Active",
+      "date_of_joining": "2024-01-01",
+      "department": "Engineering",
+      "designation": "Software Engineer",
+      "company": "ERPGulf"
+    }
+  }
+  ```
+
+  ## Notes
+  - Returns the full ERPNext Employee document, including all custom fields added to the DocType.
+  - If no `employee_code` is provided, it resolves to the authenticated user's linked employee.
+}

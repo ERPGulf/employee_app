@@ -1,0 +1,50 @@
+meta {
+  name: create_refresh_token
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/method/employee_app.gauth.create_refresh_token
+  body: form-urlencoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  refresh_token:
+}
+
+docs {
+  # Create Refresh Token
+
+  Exchanges a valid refresh token for a new access token.
+  This is a **guest endpoint** — no Bearer token required.
+
+  ## Parameters
+
+  | Name          | Type   | Required | Description                                         |
+  |---------------|--------|----------|-----------------------------------------------------|
+  | refresh_token | string | Yes      | The refresh token received from `generate_token_secure` |
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "access_token": "<new_bearer_token>",
+      "expires_in": 3600,
+      "token_type": "Bearer",
+      "scope": "all",
+      "refresh_token": "<new_refresh_token>"
+    }
+  }
+  ```
+
+  ## Notes
+  - Call this endpoint when the current access token expires to get a new one without re-entering credentials.
+  - The old refresh token is invalidated after use; store the new one returned in the response.
+}

@@ -1,0 +1,51 @@
+meta {
+  name: get_shortcut_1
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/api/method/employee_app.attendance_api.get_shortcut_1
+  body: form-urlencoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:form-urlencoded {
+  employee: HR-EMP-00003
+}
+
+docs {
+  # Get Shortcut 1
+
+  Returns the data for the first configurable dashboard shortcut for an employee.
+  Shortcuts display custom field values on the mobile app home screen.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Parameters
+
+  | Name     | Type   | Required | Description                          |
+  |----------|--------|----------|--------------------------------------|
+  | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)  |
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "label": "Department",
+      "value": "Engineering"
+    }
+  }
+  ```
+
+  ## Notes
+  - The shortcut's label and field are configured in the `Checkin App Setting` DocType.
+  - There are three shortcuts (`shortcut_1`, `shortcut_2`, `shortcut_3`) that can be independently configured.
+  - Returns `null` if no shortcut field is configured for the employee's company.
+}

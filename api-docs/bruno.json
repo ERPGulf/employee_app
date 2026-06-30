@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "employee_app",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

@@ -1,0 +1,50 @@
+meta {
+  name: mark_notification_as_read
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{base_url}}/api/method/employee_app.attendance_api.mark_notification_as_read
+  body: form-urlencoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  id: EN-00001
+}
+
+docs {
+  # Mark Notification as Read
+
+  Marks a specific employee notification as read.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Parameters
+
+  | Name | Type   | Required | Description                                             |
+  |------|--------|----------|---------------------------------------------------------|
+  | id   | string | Yes      | Notification document name (e.g., `EN-00001`)          |
+
+  ## Response
+
+  ```json
+  {
+    "message": "Notification marked as read"
+  }
+  ```
+
+  ## Notes
+  - The notification `id` is the `name` field returned by `get_notification`.
+  - Calling this on an already-read notification is a no-op and returns success.
+}

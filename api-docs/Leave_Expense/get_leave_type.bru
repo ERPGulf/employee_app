@@ -1,0 +1,58 @@
+meta {
+  name: get_leave_type
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/method/employee_app.attendance_api.get_leave_type
+  body: form-urlencoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:form-urlencoded {
+  employee: HR-EMP-00003
+}
+
+docs {
+  # Get Leave Types
+
+  Returns the list of available leave types for an employee, including their
+  remaining balance and allocation details.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Parameters
+
+  | Name     | Type   | Required | Description                         |
+  |----------|--------|----------|-------------------------------------|
+  | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`) |
+
+  ## Response
+
+  ```json
+  {
+    "message": [
+      {
+        "leave_type": "Annual Leave",
+        "max_days_allowed": 30,
+        "remaining_balance": 12.0
+      },
+      {
+        "leave_type": "Sick Leave",
+        "max_days_allowed": 15,
+        "remaining_balance": 15.0
+      }
+    ]
+  }
+  ```
+
+  ## Notes
+  - Returns only leave types with an active allocation for the employee's current leave period.
+  - Use the `leave_type` name from this response when calling `create_leave_application`.
+}

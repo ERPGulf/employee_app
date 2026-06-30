@@ -1,0 +1,44 @@
+meta {
+  name: get_server_time
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/method/employee_app.attendance_api.get_server_time
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Get Server Time
+
+  Returns the current server date and time. Use this to synchronize the mobile app's
+  clock with the server before submitting attendance logs.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Parameters
+  None.
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "server_time": "2026-06-17 14:30:00",
+      "timezone": "Asia/Dubai"
+    }
+  }
+  ```
+
+  ## Notes
+  - Always use the server time when submitting timestamps for check-in/check-out events
+    to avoid discrepancies caused by device clock drift.
+  - The timezone reflects the ERPNext system settings.
+}

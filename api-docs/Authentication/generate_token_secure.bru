@@ -1,0 +1,56 @@
+meta {
+  name: generate_token_secure
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/method/employee_app.gauth.generate_token_secure
+  body: form-urlencoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+  Cookie: sid=Guest
+}
+
+body:form-urlencoded {
+  api_key: Administrator
+  api_secret:
+  app_key: dGVuYW50X2VycGd1bGY=
+}
+
+docs {
+  # Generate Secure Token
+
+  Generates an OAuth2 access token and refresh token using ERPNext API credentials.
+  This is a **guest endpoint** — no prior authentication required.
+
+  ## Parameters
+
+  | Name       | Type   | Required | Description                                                  |
+  |------------|--------|----------|--------------------------------------------------------------|
+  | api_key    | string | Yes      | ERPNext user API key (e.g., `Administrator`)                 |
+  | api_secret | string | Yes      | ERPNext user API secret                                      |
+  | app_key    | string | Yes      | Base64-encoded tenant identifier (e.g., `dGVuYW50X2VycGd1bGY=`) |
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "access_token": "<bearer_token>",
+      "expires_in": 3600,
+      "token_type": "Bearer",
+      "scope": "all",
+      "refresh_token": "<refresh_token>"
+    }
+  }
+  ```
+
+  ## Notes
+  - The `app_key` is a base64-encoded string identifying the tenant.
+  - Use the returned `access_token` as a Bearer token for all authenticated endpoints.
+  - Use the `refresh_token` with the `create_refresh_token` endpoint to get a new access token when it expires.
+}

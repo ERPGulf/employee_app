@@ -1,0 +1,24 @@
+info:
+  name: Untitled 1
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://aysha.erpgulf.com/api/method/employee_app.gauth.generate_token_secure
+  headers:
+    - name: content-type
+      value: application/x-www-form-urlencoded
+    - name: cookie
+      value: sid=Guest
+    - name: Cookie
+      value: sid=Guest
+  body:
+    type: form-urlencoded
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

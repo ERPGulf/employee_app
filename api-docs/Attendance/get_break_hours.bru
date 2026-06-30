@@ -1,0 +1,59 @@
+meta {
+  name: get_break_hours
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/api/method/employee_app.attendance_api.get_break_hours
+  body: form-urlencoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:form-urlencoded {
+  employee: HR-EMP-00003
+  date: 2026-06-17
+}
+
+docs {
+  # Get Break Hours
+
+  Returns the total break duration for an employee on a specific date.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Parameters
+
+  | Name     | Type   | Required | Description                          |
+  |----------|--------|----------|--------------------------------------|
+  | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)  |
+  | date     | date   | Yes      | Date in `YYYY-MM-DD` format          |
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "employee": "HR-EMP-00003",
+      "date": "2026-06-17",
+      "break_hours": 1.0,
+      "breaks": [
+        {
+          "from_time": "12:00:00",
+          "to_time": "13:00:00",
+          "duration": 1.0
+        }
+      ]
+    }
+  }
+  ```
+
+  ## Notes
+  - Break records are tracked using the `Employee Break` DocType.
+  - Returns `0` if no breaks were logged for the date.
+}
