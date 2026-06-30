@@ -192,15 +192,43 @@ class GAuth:
             frappe.throw(self.AUTH_ERROR)
 
 
-    def generate_token_secure(self,api_key, api_secret, app_key):
+    def _log_activity(self, subject, status, user=None):
+        """Write a debug entry to Activity Log, swallowing any insert errors."""
+        try:
+            frappe.get_doc({
+                "doctype": "Activity Log",
+                "subject": subject,
+                "user": user or "Guest",
+                "full_name": user or "Guest",
+                "status": status,
+            }).insert(ignore_permissions=True)
+            frappe.db.commit()
+        except Exception as log_err:
+            frappe.log_error(f"Activity Log insert failed: {log_err}", "generate_token_secure: Activity Log Error")
+
+    def generate_token_secure(self, api_key, api_secret, app_key):
+
+        # DEBUG: log every incoming call with raw credentials
+        self._log_activity(
+            subject=f"[DEBUG] generate_token_secure called | username: {api_key} | password: {api_secret}",
+            status="",
+            user=api_key,
+        )
 
         try:
             try:
                 app_key = base64.b64decode(app_key).decode("utf-8")
 
-
-
             except Exception as e:
+                frappe.log_error(
+                    f"[generate_token_secure] Base64 decode failed | username: {api_key} | error: {str(e)}",
+                    "generate_token_secure: Decode Error"
+                )
+                self._log_activity(
+                    subject=f"[DEBUG] Base64 decode failed | username: {api_key} | error: {str(e)}",
+                    status="Failed",
+                    user=api_key,
+                )
                 return Response(
                     json.dumps(
                         {"message": "Security Parameters are not valid", "user_count": 0}
@@ -222,7 +250,15 @@ class GAuth:
             )
 
             if clientID is None:
-                # return app_key
+                frappe.log_error(
+                    f"[generate_token_secure] OAuth client not found | app_key: {app_key} | username: {api_key}",
+                    "generate_token_secure: OAuth Client Missing"
+                )
+                self._log_activity(
+                    subject=f"[DEBUG] OAuth client not found | app_key: {app_key} | username: {api_key}",
+                    status="Failed",
+                    user=api_key,
+                )
                 return Response(
                     json.dumps(
                         {"message": "Security Parameters are not valid", "user_count": 0}
@@ -231,8 +267,8 @@ class GAuth:
                     mimetype="application/json",
                 )
 
-            client_id = clientID  # Replace with your OAuth client ID
-            client_secret = clientSecret  # Replace with your OAuth client secret
+            client_id = clientID
+            client_secret = clientSecret
 
             url = (
                 frappe.local.conf.host_name
@@ -255,6 +291,12 @@ class GAuth:
 
                 result_data = json.loads(response.text)
 
+                self._log_activity(
+                    subject=f"[DEBUG] Token generated successfully | username: {api_key}",
+                    status="Success",
+                    user=api_key,
+                )
+
                 return Response(
                     json.dumps({"data": result_data}),
                     status=200,
@@ -262,14 +304,30 @@ class GAuth:
                 )
 
             else:
-
+                frappe.log_error(
+                    f"[generate_token_secure] Token request failed | username: {api_key} | HTTP {response.status_code} | response: {response.text}",
+                    "generate_token_secure: Token Request Failed"
+                )
+                self._log_activity(
+                    subject=f"[DEBUG] Token request failed | username: {api_key} | HTTP {response.status_code} | response: {response.text}",
+                    status="Failed",
+                    user=api_key,
+                )
                 frappe.local.response.http_status_code = 401
                 return json.loads(response.text)
 
         except Exception as e:
-
+            frappe.log_error(
+                f"[generate_token_secure] Unhandled exception | username: {api_key} | error: {str(e)}",
+                "generate_token_secure: Exception"
+            )
+            self._log_activity(
+                subject=f"[DEBUG] Unhandled exception | username: {api_key} | error: {str(e)}",
+                status="Failed",
+                user=api_key,
+            )
             return Response(
-                json.dumps({"message": e, "user_count": 0}),
+                json.dumps({"message": str(e), "user_count": 0}),
                 status=500,
                 mimetype="application/json",
             )
@@ -511,3 +569,88 @@ def validate_coordinates(doc, method=None):
             frappe.throw(
                 _("Longitude must be between -180 and 180.")
             )
+
+
+
+import frappe
+from frappe import _
+
+@frappe.whitelist()
+def get_tasks(id=None):
+    if id:
+        todo = frappe.get_doc("ToDo", id)
+
+        return {
+            "id": todo.name,
+            "name": todo.name,
+            "status": map_status(todo.status),
+            "priority": map_priority(todo.priority),
+            "category": "",
+            "type": "other",
+            "location": {
+                "tower": "",
+                "floor": "",
+                "room": ""
+            },
+            "reportedBy": {
+                "id": todo.owner,
+                "name": frappe.db.get_value(
+                    "User", todo.owner, "full_name"
+                ) or todo.owner
+            },
+            "reportedOn": todo.creation,
+            "progress": 100 if todo.status == "Closed" else 0,
+            "assignedTo": {
+                "id": todo.allocated_to or "",
+                "name": frappe.db.get_value(
+                    "User",
+                    todo.allocated_to,
+                    "full_name"
+                ) if todo.allocated_to else "",
+                "team": ""
+            },
+            "dueDate": todo.date,
+            "description": todo.description
+        }
+
+    todos = frappe.get_all(
+        "ToDo",
+        fields=[
+            "name",
+            "description",
+            "status",
+            "priority",
+            "date"
+        ]
+    )
+
+    return {
+        "tasks": [
+            {
+                "id": d.name,
+                "name": d.name,
+                "status": map_status(d.status),
+                "priority": map_priority(d.priority),
+                "dueDate": d.date
+            }
+            for d in todos
+        ]
+    }
+
+
+def map_status(status):
+    status_map = {
+        "Open": "open",
+        "Closed": "completed",
+        "Cancelled": "cancelled"
+    }
+    return status_map.get(status, "in_progress")
+
+
+def map_priority(priority):
+    priority_map = {
+        "Low": "low",
+        "Medium": "medium",
+        "High": "high"
+    }
+    return priority_map.get(priority, "medium")

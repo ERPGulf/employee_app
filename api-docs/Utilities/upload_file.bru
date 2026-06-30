@@ -1,0 +1,62 @@
+meta {
+  name: upload_file
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/method/employee_app.attendance_api.upload_file
+  body: multipart-form
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:multipart-form {
+  file: @file
+  file_name: receipt
+  doctype: Employee Checkin
+  docname: EMP-CKIN-09-2025-000001
+}
+
+docs {
+  # Upload File
+
+  Uploads a file and attaches it to an ERPNext document.
+  Supports image optimization for uploaded image files.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Content-Type
+  `multipart/form-data`
+
+  ## Parameters
+
+  | Name     | Type   | Required | Description                                                   |
+  |----------|--------|----------|---------------------------------------------------------------|
+  | file     | file   | Yes      | The file to upload (image or PDF)                             |
+  | file_name| string | No       | Custom name for the saved file (without extension)            |
+  | doctype  | string | No       | ERPNext DocType to attach the file to (e.g., `Employee Checkin`) |
+  | docname  | string | No       | Name of the specific document to attach to (e.g., `EMP-CKIN-09-2025-000001`) |
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "file_url": "/files/receipt.jpg",
+      "file_name": "receipt.jpg",
+      "attached_to_doctype": "Employee Checkin",
+      "attached_to_name": "EMP-CKIN-09-2025-000001"
+    }
+  }
+  ```
+
+  ## Notes
+  - If `doctype` and `docname` are provided, the file is linked to that document in ERPNext.
+  - Image files (JPG, PNG) are automatically optimized/compressed before saving.
+  - The returned `file_url` is a relative path; prepend `base_url` to get the full URL.
+}

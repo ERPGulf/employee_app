@@ -1,0 +1,43 @@
+meta {
+  name: whoami
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/method/employee_app.gauth.whoami
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Who Am I
+
+  Returns the currently authenticated user's session information.
+  Useful for verifying that a token is valid and checking which user it belongs to.
+
+  ## Authentication
+  Requires a valid Bearer token in the `Authorization` header.
+
+  ## Parameters
+  None.
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "user": "employee@example.com",
+      "full_name": "John Doe"
+    }
+  }
+  ```
+
+  ## Notes
+  - Use this endpoint to validate a token before making other API calls.
+  - Returns `403 Forbidden` if the token is invalid or expired.
+}

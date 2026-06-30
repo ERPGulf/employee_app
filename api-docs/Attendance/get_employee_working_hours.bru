@@ -1,0 +1,55 @@
+meta {
+  name: get_employee_working_hours
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/method/employee_app.attendance_api.get_employee_working_hours
+  body: form-urlencoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:form-urlencoded {
+  employee: HR-EMP-00003
+  date: 2026-06-17
+}
+
+docs {
+  # Get Employee Working Hours
+
+  Returns the computed working hours for an employee on a specific date,
+  based on their check-in/check-out logs and shift configuration.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Parameters
+
+  | Name     | Type   | Required | Description                                   |
+  |----------|--------|----------|-----------------------------------------------|
+  | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)            |
+  | date     | date   | Yes      | Date in `YYYY-MM-DD` format                   |
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "employee": "HR-EMP-00003",
+      "date": "2026-06-17",
+      "working_hours": 8.5,
+      "first_checkin": "09:00:00",
+      "last_checkout": "17:30:00"
+    }
+  }
+  ```
+
+  ## Notes
+  - Working hours calculation depends on the employee's shift settings in ERPNext.
+  - Returns `0` if no check-in logs exist for the given date.
+}

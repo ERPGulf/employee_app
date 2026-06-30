@@ -1,0 +1,64 @@
+meta {
+  name: add_log_based_on_employee_field
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/method/employee_app.attendance_api.add_log_based_on_employee_field
+  body: form-urlencoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  employee_field_value: HR-EMP-00003
+  timestamp: 2026-06-17 12:46:00
+  device_id: 09267
+  log_type: IN
+}
+
+docs {
+  # Add Checkin/Checkout Log
+
+  Records an employee check-in or check-out event. This is the primary endpoint
+  for logging attendance from a mobile device.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Parameters
+
+  | Name                 | Type     | Required | Description                                               |
+  |----------------------|----------|----------|-----------------------------------------------------------|
+  | employee_field_value | string   | Yes      | Employee ID (e.g., `HR-EMP-00003`)                        |
+  | timestamp            | datetime | Yes      | Log datetime in `YYYY-MM-DD HH:MM:SS` format              |
+  | device_id            | string   | No       | Identifier of the device used for check-in               |
+  | log_type             | string   | Yes      | `IN` for check-in, `OUT` for check-out                    |
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "name": "EMP-CKIN-06-2026-000001",
+      "employee": "HR-EMP-00003",
+      "log_type": "IN",
+      "time": "2026-06-17 12:46:00"
+    }
+  }
+  ```
+
+  ## Notes
+  - The `employee_field_value` should match the employee's ID in ERPNext.
+  - `log_type` must be exactly `IN` or `OUT` (case-sensitive).
+  - Timestamps should be in the server's local timezone.
+  - Duplicate logs within a short window may be rejected.
+}

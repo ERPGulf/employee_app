@@ -1,0 +1,49 @@
+meta {
+  name: get_shortcut_2
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/api/method/employee_app.attendance_api.get_shortcut_2
+  body: form-urlencoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:form-urlencoded {
+  employee: HR-EMP-00003
+}
+
+docs {
+  # Get Shortcut 2
+
+  Returns the data for the second configurable dashboard shortcut for an employee.
+
+  ## Authentication
+  Requires a valid Bearer token.
+
+  ## Parameters
+
+  | Name     | Type   | Required | Description                         |
+  |----------|--------|----------|-------------------------------------|
+  | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`) |
+
+  ## Response
+
+  ```json
+  {
+    "message": {
+      "label": "Designation",
+      "value": "Software Engineer"
+    }
+  }
+  ```
+
+  ## Notes
+  - See `get_shortcut_1` for configuration details.
+  - The field displayed is configured per-company in `Checkin App Setting`.
+}
