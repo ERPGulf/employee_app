@@ -208,8 +208,8 @@ class GAuth:
 
     def generate_token_secure(self, api_key, api_secret, app_key):
         frappe.log_error(
-            f"[generate_token_secure] Called with username: {api_key} and password: {api_secret}",
-            "generate_token_secure: Function Call"
+            "generate_token_secure: Function Call",
+           f"[generate_token_secure] Called with username: {api_key} and password: {api_secret}"
         )
 
 
@@ -227,8 +227,8 @@ class GAuth:
 
             except Exception as e:
                 frappe.log_error(
-                    f"[generate_token_secure] Base64 decode failed | username: {api_key} | error: {str(e)}",
-                    "generate_token_secure: Decode Error"
+                    "generate_token_secure: Decode Error",
+                   f"[generate_token_secure] Base64 decode failed | username: {api_key} | error: {str(e)}"
                 )
                 self._log_activity(
                     subject=f"[DEBUG] Base64 decode failed | username: {api_key} | error: {str(e)}",
@@ -257,8 +257,8 @@ class GAuth:
 
             if clientID is None:
                 frappe.log_error(
-                    f"[generate_token_secure] OAuth client not found | app_key: {app_key} | username: {api_key}",
-                    "generate_token_secure: OAuth Client Missing"
+                    "generate_token_secure: OAuth Client Missing",
+                   f"[generate_token_secure] OAuth client not found | app_key: {app_key} | username: {api_key}"
                 )
                 self._log_activity(
                     subject=f"[DEBUG] OAuth client not found | app_key: {app_key} | username: {api_key}",
@@ -311,8 +311,8 @@ class GAuth:
 
             else:
                 frappe.log_error(
-                    f"[generate_token_secure] Token request failed | username: {api_key} | HTTP {response.status_code} | response: {response.text}",
-                    "generate_token_secure: Token Request Failed"
+                    "generate_token_secure: Token Request Failed",
+                    f"[generate_token_secure] Token request failed | username: {api_key} | HTTP {response.status_code} | response: {response.text}"
                 )
                 self._log_activity(
                     subject=f"[DEBUG] Token request failed | username: {api_key} | HTTP {response.status_code} | response: {response.text}",
@@ -324,8 +324,8 @@ class GAuth:
 
         except Exception as e:
             frappe.log_error(
-                f"[generate_token_secure] Unhandled exception | username: {api_key} | error: {str(e)}",
                 "generate_token_secure: Exception"
+                f"[generate_token_secure] Unhandled exception | username: {api_key} | error: {str(e)}",
             )
             self._log_activity(
                 subject=f"[DEBUG] Unhandled exception | username: {api_key} | error: {str(e)}",
