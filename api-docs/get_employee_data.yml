@@ -25,3 +25,42 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+   # Get Employee Data
+
+    Returns comprehensive employee profile data including personal details,
+    department, designation, shift, photo, and location restriction settings.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name        | Type   | Required | Description                           |
+    |-------------|--------|----------|---------------------------------------|
+    | employee_id | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)   |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "employee": "HR-EMP-00003",
+        "employee_name": "John Doe",
+        "department": "Engineering",
+        "designation": "Software Engineer",
+        "company": "ERPGulf",
+        "image": "/files/employee_photo.jpg",
+        "location_restriction": true,
+        "latitude": 25.2048,
+        "longitude": 55.2708,
+        "radius": 100
+      }
+    }
+    ```
+
+    ## Notes
+    - `location_restriction` indicates whether GPS-based check-in is enforced.
+    - `radius` is the allowed check-in radius in meters when location restriction is active.
+    - The `image` field contains a relative URL path to the employee photo.

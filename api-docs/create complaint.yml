@@ -1,7 +1,7 @@
 info:
   name: create complaint
   type: http
-  seq: 27
+  seq: 23
 
 http:
   method: post
@@ -29,3 +29,37 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+   # Create Complaint
+
+    Submits an employee complaint or issue report. Logged under the
+    `Employee Complaint` DocType.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name     | Type   | Required | Description                                    |
+    |----------|--------|----------|------------------------------------------------|
+    | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)            |
+    | date     | date   | Yes      | Complaint date in `YYYY-MM-DD` format          |
+    | message  | string | Yes      | Detailed description of the complaint or issue |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "name": "EMP-COMP-00001",
+        "employee": "HR-EMP-00003",
+        "date": "2026-06-01",
+        "status": "Open"
+      }
+    }
+    ```
+
+    ## Notes
+    - Complaints are created in `Open` status and are reviewed by HR.
+    - The `message` field supports plain text; no HTML or special formatting.

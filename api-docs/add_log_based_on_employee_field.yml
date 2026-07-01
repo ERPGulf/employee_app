@@ -33,3 +33,40 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2+
+    # Add Checkin/Checkout Log
+    Records an employee check-in or check-out event. This is the primary endpoint
+    for logging attendance from a mobile device.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name                 | Type     | Required | Description                                               |
+    |----------------------|----------|----------|-----------------------------------------------------------|
+    | employee_field_value | string   | Yes      | Employee ID (e.g., `HR-EMP-00003`)                        |
+    | timestamp            | datetime | Yes      | Log datetime in `YYYY-MM-DD HH:MM:SS` format              |
+    | device_id            | string   | No       | Identifier of the device used for check-in               |
+    | log_type             | string   | Yes      | `IN` for check-in, `OUT` for check-out                    |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "name": "EMP-CKIN-06-2026-000001",
+        "employee": "HR-EMP-00003",
+        "log_type": "IN",
+        "time": "2026-06-17 12:46:00"
+      }
+    }
+    ```
+
+    ## Notes
+    - The `employee_field_value` should match the employee's ID in ERPNext.
+    - `log_type` must be exactly `IN` or `OUT` (case-sensitive).
+    - Timestamps should be in the server's local timezone.
+    - Duplicate logs within a short window may be rejected.
+

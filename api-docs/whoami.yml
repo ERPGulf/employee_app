@@ -15,3 +15,30 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |-
+  # Who Am I
+
+    Returns the currently authenticated user's session information.
+    Useful for verifying that a token is valid and checking which user it belongs to.
+
+    ## Authentication
+    Requires a valid Bearer token in the `Authorization` header.
+
+    ## Parameters
+    None.
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "user": "employee@example.com",
+        "full_name": "John Doe"
+      }
+    }
+    ```
+
+    ## Notes
+    - Use this endpoint to validate a token before making other API calls.
+    - Returns `403 Forbidden` if the token is invalid or expired.

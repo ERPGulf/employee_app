@@ -28,3 +28,37 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+   # Get Employee Working Hours
+
+    Returns the computed working hours for an employee on a specific date,
+    based on their check-in/check-out logs and shift configuration.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name     | Type   | Required | Description                                   |
+    |----------|--------|----------|-----------------------------------------------|
+    | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)            |
+    | date     | date   | Yes      | Date in `YYYY-MM-DD` format                   |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "employee": "HR-EMP-00003",
+        "date": "2026-06-17",
+        "working_hours": 8.5,
+        "first_checkin": "09:00:00",
+        "last_checkout": "17:30:00"
+      }
+    }
+    ```
+
+    ## Notes
+    - Working hours calculation depends on the employee's shift settings in ERPNext.
+    - Returns `0` if no check-in logs exist for the given date.

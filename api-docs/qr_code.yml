@@ -1,7 +1,7 @@
 info:
   name: qr_code
   type: http
-  seq: 26
+  seq: 22
 
 http:
   method: get
@@ -20,3 +20,34 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+   # Get Employee QR Code
+
+    Retrieves the QR code image URL for an employee. The QR code is auto-generated
+    when the employee record is created or updated in ERPNext.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name     | Type   | Required | Description                          |
+    |----------|--------|----------|--------------------------------------|
+    | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)  |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "employee": "HR-EMP-00003",
+        "qr_code_url": "/files/qr_HR-EMP-00003.png"
+      }
+    }
+    ```
+
+    ## Notes
+    - The QR code encodes the employee's ID and is used for contactless check-in.
+    - QR codes are generated automatically via the `Employee.on_update` hook.
+    - Returns an error if no QR code file exists for the employee.

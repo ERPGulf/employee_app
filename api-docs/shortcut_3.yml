@@ -1,7 +1,7 @@
 info:
   name: shortcut_3
   type: http
-  seq: 25
+  seq: 21
 
 http:
   method: get
@@ -20,3 +20,32 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |-
+  # Get Shortcut 3
+
+    Returns the data for the third configurable dashboard shortcut for an employee.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name     | Type   | Required | Description                         |
+    |----------|--------|----------|-------------------------------------|
+    | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`) |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "label": "Branch",
+        "value": "Dubai HQ"
+      }
+    }
+    ```
+
+    ## Notes
+    - See `get_shortcut_1` for configuration details.
+    - The field displayed is configured per-company in `Checkin App Setting`.

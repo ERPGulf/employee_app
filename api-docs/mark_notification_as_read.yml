@@ -1,7 +1,7 @@
 info:
   name: mark_notification_as_read
   type: http
-  seq: 29
+  seq: 26
 
 http:
   method: put
@@ -25,3 +25,29 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |-
+  # Mark Notification as Read
+
+    Marks a specific employee notification as read.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name | Type   | Required | Description                                             |
+    |------|--------|----------|---------------------------------------------------------|
+    | id   | string | Yes      | Notification document name (e.g., `EN-00001`)          |
+
+    ## Response
+
+    ```json
+    {
+      "message": "Notification marked as read"
+    }
+    ```
+
+    ## Notes
+    - The notification `id` is the `name` field returned by `get_notification`.
+    - Calling this on an already-read notification is a no-op and returns success.

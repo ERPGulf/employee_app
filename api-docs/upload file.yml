@@ -1,7 +1,7 @@
 info:
   name: upload file
   type: http
-  seq: 20
+  seq: 17
 
 http:
   method: post

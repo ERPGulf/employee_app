@@ -15,3 +15,32 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |-
+  # Get Expense Claim Types
+
+    Returns the list of all available expense claim types configured in the system.
+    Use the returned names when creating an expense claim.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+    None.
+
+    ## Response
+
+    ```json
+    {
+      "message": [
+        { "name": "Food" },
+        { "name": "Travel" },
+        { "name": "Accommodation" },
+        { "name": "Communication" }
+      ]
+    }
+    ```
+
+    ## Notes
+    - Expense claim types are maintained as an ERPNext master list.
+    - Pass the `name` value from this response as the `expense_type` in `create_expense_claim`.
