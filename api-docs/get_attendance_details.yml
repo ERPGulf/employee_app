@@ -27,3 +27,41 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+   # Get Attendance Details
+
+    Retrieves detailed attendance records for an employee including check-in/check-out
+    logs and computed attendance status.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name        | Type   | Required | Description                            |
+    |-------------|--------|----------|----------------------------------------|
+    | employee_id | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)     |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "employee": "HR-EMP-00003",
+        "attendance": [
+          {
+            "date": "2026-06-17",
+            "status": "Present",
+            "in_time": "09:00:00",
+            "out_time": "17:00:00",
+            "working_hours": 8.0
+          }
+        ]
+      }
+    }
+    ```
+
+    ## Notes
+    - Returns attendance records sorted by date descending.
+    - `status` can be `Present`, `Absent`, `Half Day`, or `On Leave`.

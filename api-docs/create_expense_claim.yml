@@ -42,3 +42,45 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+   # Create Expense Claim
+
+    Creates an expense claim for an employee with an optional supporting receipt file attachment.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Content-Type
+    `multipart/form-data` — required when attaching a receipt file.
+
+    ## Parameters
+
+    | Name         | Type   | Required | Description                                              |
+    |--------------|--------|----------|----------------------------------------------------------|
+    | employee     | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)                      |
+    | expense_date | string | Yes      | Date/datetime of the expense in `YYYY-MM-DD` format     |
+    | expense_type | string | Yes      | Expense category (e.g., `Food`, `Travel`). Use `get_expense_claim_type` for the full list. |
+    | amount       | number | Yes      | Expense amount in the employee's company currency       |
+    | description  | string | No       | Description or notes for the expense                    |
+    | file_name    | file   | No       | Receipt image or PDF attachment                         |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "name": "EXP-CLAIM-00001",
+        "employee": "HR-EMP-00003",
+        "expense_date": "2026-06-16",
+        "total_claimed_amount": 10.0,
+        "status": "Draft"
+      }
+    }
+    ```
+
+    ## Notes
+    - The expense claim is created in `Draft` status and requires manager approval.
+    - Supported file types for receipts: JPG, PNG, PDF.
+    - Images are automatically optimized before storage.
+    - Use `get_expense_claim_type` to get valid expense type names.

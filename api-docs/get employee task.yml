@@ -1,0 +1,20 @@
+info:
+  name: get employee task
+  type: http
+  seq: 27
+
+http:
+  method: get
+  url: https://malavika16.erpgulf.com:3045/api/method/tenant_erpgulf.task.get_employee_tasks
+  headers:
+    - name: authorization
+      value: Bearer KpxQyviQhCd9wQlFsm95JECuXE2uZT
+  auth:
+    type: bearer
+    token: "{token}"
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

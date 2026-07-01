@@ -25,3 +25,38 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+    # Get Today's Breaks
+
+    Returns all break records logged for the current day for the given employee.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name     | Type   | Required | Description                          |
+    |----------|--------|----------|--------------------------------------|
+    | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)  |
+
+    ## Response
+
+    ```json
+    {
+      "message": [
+        {
+          "name": "EMP-BRK-00001",
+          "from_time": "12:00:00",
+          "to_time": "13:00:00",
+          "duration": 1.0,
+          "date": "2026-06-17"
+        }
+      ]
+    }
+    ```
+
+    ## Notes
+    - Automatically uses today's server date — no `date` parameter required.
+    - Returns an empty list if no breaks have been started today.
+    - Use `get_break_hours` if you need the total break duration for a specific date.

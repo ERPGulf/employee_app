@@ -1,7 +1,7 @@
 info:
   name: get_notification
   type: http
-  seq: 28
+  seq: 24
 
 http:
   method: get
@@ -20,3 +20,39 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+   # Get Notifications
+
+    Returns all notifications for an employee, ordered by creation date descending.
+    Includes both unread and read notifications.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name     | Type   | Required | Description                         |
+    |----------|--------|----------|-------------------------------------|
+    | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`) |
+
+    ## Response
+
+    ```json
+    {
+      "message": [
+        {
+          "name": "EN-00001",
+          "subject": "Leave Approved",
+          "message": "Your leave application has been approved.",
+          "creation": "2026-06-17 10:00:00",
+          "read": 0
+        }
+      ]
+    }
+    ```
+
+    ## Notes
+    - `read` is `0` for unread notifications and `1` for read ones.
+    - Use `mark_notification_as_read` to mark a notification as read.
+    - Notifications are stored in the `Employee Notification` DocType.

@@ -1,7 +1,7 @@
 info:
   name: shortcut_2
   type: http
-  seq: 23
+  seq: 20
 
 http:
   method: get
@@ -20,3 +20,32 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+   # Get Shortcut 2
+
+    Returns the data for the second configurable dashboard shortcut for an employee.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name     | Type   | Required | Description                         |
+    |----------|--------|----------|-------------------------------------|
+    | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`) |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "label": "Designation",
+        "value": "Software Engineer"
+      }
+    }
+    ```
+
+    ## Notes
+    - See `get_shortcut_1` for configuration details.
+    - The field displayed is configured per-company in `Checkin App Setting`.

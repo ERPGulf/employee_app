@@ -1,7 +1,7 @@
 info:
   name: server_time
   type: http
-  seq: 21
+  seq: 18
 
 http:
   method: get

@@ -1,0 +1,22 @@
+info:
+  name: get task
+  type: http
+  seq: 29
+
+http:
+  method: GET
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.gauth.get_tasks
+  body:
+    type: form-urlencoded
+    data:
+      - name: id
+        value: 3tu5osjdt3
+  auth:
+    type: bearer
+    token: ecX08n8LjyoFRt3ngGpmKoUPiJRmeT
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

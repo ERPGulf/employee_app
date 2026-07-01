@@ -13,9 +13,6 @@ http:
         value: HR-EMP-00003
       - name: date
         value: 2026-06-17
-      - name: ""
-        value: ""
-        disabled: true
   auth:
     type: bearer
     token: haCGof3upMppyO5I5etsUypBlUoZcE
@@ -25,3 +22,37 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |-
+  # Get Total Hours
+
+    Returns the net working hours for an employee on a specific date.
+    Net hours = working hours - break hours.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name     | Type   | Required | Description                           |
+    |----------|--------|----------|---------------------------------------|
+    | employee | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)   |
+    | date     | date   | Yes      | Date in `YYYY-MM-DD` format           |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "employee": "HR-EMP-00003",
+        "date": "2026-06-17",
+        "total_hours": 7.5,
+        "working_hours": 8.5,
+        "break_hours": 1.0
+      }
+    }
+    ```
+
+    ## Notes
+    - `total_hours` is the net productive time after subtracting breaks.
+    - Returns `0` if no checkin records exist for the date.

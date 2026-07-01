@@ -30,3 +30,46 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+   # Create Attendance Request
+
+    Submits an attendance regularization request for an employee, covering a date range
+    with specified work times. Useful for correcting missed check-ins or work-from-home days.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name      | Type   | Required | Description                                               |
+    |-----------|--------|----------|-----------------------------------------------------------|
+    | employee  | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)                       |
+    | from_date | date   | Yes      | Start date of request in `YYYY-MM-DD` format             |
+    | to_date   | date   | Yes      | End date of request in `YYYY-MM-DD` format               |
+    | from_time | time   | Yes      | Work start time in `HH:MM:SS` format                     |
+    | to_time   | time   | Yes      | Work end time in `HH:MM:SS` format                       |
+    | reason    | string | Yes      | Reason for the attendance request (e.g., `Work From Home`) |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "name": "ATT-REQ-00001",
+        "employee": "HR-EMP-00003",
+        "from_date": "2026-06-01",
+        "to_date": "2026-06-01",
+        "status": "Open"
+      }
+    }
+    ```
+
+    ## Validation Rules
+    - `from_date` must not be a future date.
+    - `from_date` must be less than or equal to `to_date`.
+    - Both dates must be valid calendar dates.
+
+    ## Notes
+    - The request is created in `Open` status and requires manager approval in ERPNext.
+    - Attendance records are updated only after the request is approved.

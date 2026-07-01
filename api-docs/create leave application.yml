@@ -1,10 +1,10 @@
 info:
   name: create leave application
   type: http
-  seq: 15
+  seq: 14
 
 http:
-  method: GET
+  method: POST
   url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.create_leave_application
   body:
     type: form-urlencoded
@@ -26,3 +26,41 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+docs: |2-
+    # Create Leave Application
+
+    Submits a leave application for an employee for the specified date range and leave type.
+
+    ## Authentication
+    Requires a valid Bearer token.
+
+    ## Parameters
+
+    | Name       | Type   | Required | Description                                            |
+    |------------|--------|----------|--------------------------------------------------------|
+    | employee   | string | Yes      | Employee ID (e.g., `HR-EMP-00003`)                    |
+    | leave_type | string | Yes      | Leave type name (e.g., `Leave Without Pay`, `Sick Leave`) |
+    | from_date  | date   | Yes      | Leave start date in `YYYY-MM-DD` format               |
+    | to_date    | date   | Yes      | Leave end date in `YYYY-MM-DD` format                 |
+
+    ## Response
+
+    ```json
+    {
+      "message": {
+        "name": "HR-LAP-00001",
+        "employee": "HR-EMP-00003",
+        "leave_type": "Leave Without Pay",
+        "from_date": "2026-06-01",
+        "to_date": "2026-06-01",
+        "status": "Open",
+        "total_leave_days": 1.0
+      }
+    }
+    ```
+
+    ## Notes
+    - Use `get_leave_type` to get the list of applicable leave types for the employee.
+    - The application is created in `Open` status and requires manager approval.
+    - Leave balance is deducted only after the application is approved.
