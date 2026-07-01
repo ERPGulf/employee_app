@@ -75,6 +75,10 @@ def create_qr_code(doc, method):
 			url.png(qr_image, scale=2, quiet_zone=1)
 
 			filename = f"QR-CODE-{doc.name}.png".replace(os.path.sep, "__")
+
+			for old_file in frappe.get_all("File", filters={"file_name": filename}, pluck="name"):
+				frappe.delete_doc("File", old_file, ignore_permissions=True, delete_permanently=True)
+
 			_file = frappe.get_doc({
 				"doctype": "File",
 				"file_name": filename,
