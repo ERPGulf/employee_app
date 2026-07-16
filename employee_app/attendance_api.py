@@ -1084,6 +1084,7 @@ def Employee_break(
 ):
     """Add Employee Break log entry"""
     try:
+
         if isinstance(timestamp, str):
             timestamp1 = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
 
@@ -1190,8 +1191,14 @@ def get_employee_working_hours(employee, date):
     total_hours = working_hours[0] if working_hours else 0
     return total_hours
 
-@frappe.whitelist()
-def get_break_hours(employee, date):
+
+def format_hours_to_hhmm(hours):
+    total_minutes = round(hours * 60)
+    hh, mm = divmod(total_minutes, 60)
+    return f"{hh:02d}:{mm:02d}"
+
+
+def _calculate_break_hours(employee, date):
 
     if isinstance(date, str):
         date = datetime.strptime(date, "%Y-%m-%d").date()
@@ -1246,6 +1253,11 @@ def get_break_hours(employee, date):
             last_break_start = None
 
     return total_break_seconds / 3600
+
+
+@frappe.whitelist()
+def get_break_hours(employee, date):
+    return format_hours_to_hhmm(_calculate_break_hours(employee, date))
 
 @frappe.whitelist()
 def get_today_breaks(employee):
@@ -1338,10 +1350,10 @@ def override_working_hours(doc, method):
         doc.custom_break_application_approved = 0
 
     working_hours = get_employee_working_hours(doc.employee, doc.attendance_date)
-    break_hours = get_break_hours(doc.employee, doc.attendance_date)
+    break_hours_numeric = _calculate_break_hours(doc.employee, doc.attendance_date)
 
-    net_hours = max(working_hours - break_hours, 0)
-    doc.custom_break_hours = break_hours
+    net_hours = max(working_hours - break_hours_numeric, 0)
+    doc.custom_break_hours = format_hours_to_hhmm(break_hours_numeric)
     doc.working_hours = round(net_hours, 2)
 
 
@@ -1365,7 +1377,7 @@ def get_monthly_break_hours(employee, date):
     for day in range(1, num_days + 1):
         current_date = datetime(year, month, day).date()
 
-        daily_hours = get_break_hours(employee, current_date)
+        daily_hours = _calculate_break_hours(employee, current_date)
 
         if daily_hours:
             total_hours += daily_hours

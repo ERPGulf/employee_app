@@ -657,3 +657,62 @@ def map_priority(priority):
         "High": "high"
     }
     return priority_map.get(priority, "medium")
+
+
+@frappe.whitelist()
+def salary_advance_request(employee,amount,date,reason):
+
+    try:
+        company = frappe.db.get_value("Employee", employee, "company")
+        currency = "SAR"
+        company_currency = frappe.get_cached_value("Company", company, "default_currency")
+
+        if currency == company_currency:
+            exchange_rate = 1.0
+        else:
+            from erpnext.setup.utils import get_exchange_rate
+            exchange_rate = get_exchange_rate(currency, company_currency)
+
+        gross_salary = frappe.db.get_value(
+            "Salary Structure Assignment",
+            {"employee": employee, "docstatus": 1, "from_date": ["<=", date]},
+            "base",
+            order_by="from_date desc"
+        )
+
+        doc = frappe.get_doc({
+            "doctype": "Employee Advance",
+            "employee": employee,
+            "company": company,
+            "advance_amount": amount,
+            "purpose": reason,
+            "currency": currency,
+            "exchange_rate": exchange_rate,
+            "posting_date": date,
+            "custom_salary": gross_salary or 0
+        })
+        doc.insert()
+
+
+        data = {
+            "name": doc.name,
+            "employee": doc.employee,
+            "advance_amount": doc.advance_amount,
+            "purpose": doc.purpose,
+            "posting_date": str(doc.posting_date),
+            "currency": doc.currency,
+            "custom_salary": doc.custom_salary
+        }
+
+        return Response(
+            json.dumps(data),
+            status=200,
+            mimetype="application/json"
+        )
+
+    except Exception as e:
+        return Response(
+            json.dumps({"message": f"Error creating salary advance request: {str(e)}"}),
+            status=500,
+            mimetype="application/json"
+        )
