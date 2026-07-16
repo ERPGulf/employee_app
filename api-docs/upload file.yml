@@ -8,7 +8,8 @@ http:
   url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.upload_file
   headers:
     - name: Authorization
-      value: Bearer iZvTUtcYH6Xtf2WVCUnFxjz0y7qCAl
+      value: ""
+      disabled: true
     - name: Content-Type
       value: multipart/form-data
   body:
@@ -29,7 +30,7 @@ http:
         value: EMP-CKIN-09-2025-000001
   auth:
     type: bearer
-    token: uxWOuJdRomYHGqbksQZqoOzI1jMCiX
+    token: "{token}"
 
 settings:
   encodeUrl: false

@@ -10,7 +10,8 @@ http:
     - name: Content-Type
       value: application/x-www-form-urlencoded
     - name: Authorization
-      value: Bearer nAxvobEYnudjZwW3vJbCxPkA1FZzc1
+      value: ""
+      disabled: true
     - name: Cookie
       value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
   body:
@@ -20,7 +21,7 @@ http:
         value: HR-EMP-00003
   auth:
     type: bearer
-    token: AADAZwiGoKkWdD86gP9QWqKE0AxJJZ
+    token: "{token}"
 
 settings:
   encodeUrl: true

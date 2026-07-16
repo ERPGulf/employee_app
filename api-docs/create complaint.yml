@@ -10,7 +10,8 @@ http:
     - name: Content-Type
       value: application/x-www-form-urlencoded
     - name: Authorization
-      value: Bearer QEj2moTEdoZ79s6ZKt5B9jOnYC4fya
+      value: ""
+      disabled: true
   body:
     type: form-urlencoded
     data:
@@ -22,7 +23,7 @@ http:
         value: testing
   auth:
     type: bearer
-    token: mLzKQMuWeVYJV4NGBPVsU69yP3dvQa
+    token: "{token}"
 
 settings:
   encodeUrl: false

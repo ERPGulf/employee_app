@@ -10,7 +10,8 @@ http:
     - name: Content-Type
       value: application/x-www-form-urlencoded
     - name: Authorization
-      value: Bearer tggDlIFmg8l7NqG1zHlUXyl5rvvCla
+      value: ""
+      disabled: true
   body:
     type: form-urlencoded
     data:
@@ -18,7 +19,7 @@ http:
         value: HR-EMP-00003
   auth:
     type: bearer
-    token: THAyql4SJu6WNN6M8X4Hj0Ev3Td83u
+    token: "{token}"
 
 settings:
   encodeUrl: true

@@ -18,7 +18,7 @@ http:
         disabled: true
   auth:
     type: bearer
-    token: ""
+    token: "{token}"
 
 settings:
   encodeUrl: true

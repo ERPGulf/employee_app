@@ -19,7 +19,7 @@ http:
         value: 2026-06-01
   auth:
     type: bearer
-    token: aCdfk3qUpUa95SUgSTY22Ps1vIJ4To
+    token: "{token}"
 
 settings:
   encodeUrl: true
