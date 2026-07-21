@@ -378,7 +378,7 @@ def get_employee_data(employee_id: str = None):
             data = frappe.db.get_value(
                 "Employee",
                 employee_id,
-                ["name", "employee_name", "custom_in","custom_restrict_location", "custom_unrestricted_checkout_location","custom_employee_shift","custom_photo_"],
+                ["name", "employee_name", "custom_in","custom_restrict_location", "custom_unrestricted_checkout_location","custom_employee_shift","custom_photo_", "custom_geotagging"],
                 as_dict=True,
             )
 
@@ -423,7 +423,9 @@ def get_employee_data(employee_id: str = None):
                 "restrict_location": data.get("custom_restrict_location"),
                 "unrestricted_checkout_location": data.get("custom_unrestricted_checkout_location"),
                 "photo": data.get("custom_photo_"),
+                "geotagging": data.get("custom_geotagging"),
                 "employee_locations": location_details,
+
             }
         else:
             result = frappe.get_all("Employee", pluck="name")

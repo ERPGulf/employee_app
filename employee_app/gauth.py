@@ -663,6 +663,7 @@ def map_priority(priority):
 def salary_advance_request(employee,amount,date,reason):
 
     try:
+        amount = flt(amount)
         company = frappe.db.get_value("Employee", employee, "company")
         currency = "SAR"
         company_currency = frappe.get_cached_value("Company", company, "default_currency")
