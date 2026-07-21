@@ -1,0 +1,40 @@
+info:
+  name: employee break
+  type: http
+  seq: 30
+
+http:
+  method: post
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.Employee_break
+  headers:
+    - name: authorization
+      value: ""
+      disabled: true
+    - name: content-type
+      value: application/x-www-form-urlencoded
+    - name: cookie
+      value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
+    - name: Cookie
+      value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee_field_value
+        value: HR-EMP-00003
+      - name: timestamp
+        value: 2026-06-17 12:46:00
+      - name: device_id
+        value: "09267"
+      - name: log_type
+        value: IN
+      - name: location
+        value: pmna
+  auth:
+    type: bearer
+    token: "{token}"
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

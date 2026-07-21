@@ -23,7 +23,7 @@ http:
         value: Work From Home
   auth:
     type: bearer
-    token: kXCEohkrAJoG6hZHTQPVct4AdXnjcJ
+    token: "{token}"
 
 settings:
   encodeUrl: true

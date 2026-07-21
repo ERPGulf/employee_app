@@ -8,7 +8,7 @@ http:
   url: https://malavika16.erpgulf.com:3045//api/method/employee_app.gauth.whoami
   auth:
     type: bearer
-    token: AADAZwiGoKkWdD86gP9QWqKE0AxJJZ
+    token: "{token}"
 
 settings:
   encodeUrl: true

@@ -8,7 +8,8 @@ http:
   url: https://malavika16.erpgulf.com:3045/api/method/tenant_erpgulf.task.get_employee_task_detail
   headers:
     - name: authorization
-      value: Bearer KpxQyviQhCd9wQlFsm95JECuXE2uZT
+      value: ""
+      disabled: true
     - name: content-type
       value: multipart/form-data
     - name: Content-Type
