@@ -297,6 +297,7 @@ def add_log_based_on_employee_field(
     location: str = None,
     device_id: str = None,
     log_type: str = None,
+    over_time: str = None
 ):
     """Add Employee Checkin log entry"""
     try:
@@ -336,6 +337,7 @@ def add_log_based_on_employee_field(
             "log_type": log_type,
             "custom_employee_chekin_location": checkin_location,
             "custom_employee_chekin_or_checkout_location": unrestricted_checkin_location,
+            "custom_over_time": over_time
         })
 
         doc.insert(ignore_permissions=True)
@@ -416,6 +418,12 @@ def get_employee_data(employee_id: str = None):
                         "longitude": loc_data.get("long"),
                     })
 
+            geotagging_map = {
+                "Disable geotagging": 0,
+                "Enable geotagging for warnings only": 1,
+                "Enable geotagging for all attendance actions": 2,
+            }
+
             result = {
                 "name": data.get("name"),
                 "first_name": data.get("employee_name"),
@@ -423,7 +431,7 @@ def get_employee_data(employee_id: str = None):
                 "restrict_location": data.get("custom_restrict_location"),
                 "unrestricted_checkout_location": data.get("custom_unrestricted_checkout_location"),
                 "photo": data.get("custom_photo_"),
-                "geotagging": data.get("custom_geotagging"),
+                "geotagging": geotagging_map.get(data.get("custom_geotagging"), 0),
                 "employee_locations": location_details,
 
             }
