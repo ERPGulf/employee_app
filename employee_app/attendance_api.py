@@ -1476,7 +1476,7 @@ def get_loan_product():
     try:
             loan_products = frappe.get_all(
                 "Loan Product",
-                fields=["product_name"],
+                fields=["name as id", "product_name"],
             )
             return Response(
             json.dumps(loan_products),
