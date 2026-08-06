@@ -1498,12 +1498,13 @@ def get_loan_product():
 def create_loan_application(employee: str, product_name: str, amount: float, reason: str = None):
     try:
         email=frappe.db.get_value("Employee", employee, "user_id")
+        product_id= frappe.db.get_value("Loan Product", {"product_name": product_name}, "name")
 
         doc = frappe.get_doc({
             "doctype": "Loan Application",
             "applicant_type":"Employee",
             "applicant": employee,
-            "loan_product": product_name,
+            "loan_product": product_id,
             "loan_amount": amount,
             "company": frappe.defaults.get_user_default("Company"),
             "posting_date": frappe.utils.nowdate(),
