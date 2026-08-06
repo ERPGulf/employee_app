@@ -1470,3 +1470,82 @@ def add_diagnostic_message(message):
             status=500,
             mimetype="application/json",
         )
+
+@frappe.whitelist(allow_guest=True)
+def get_loan_product():
+    try:
+            loan_products = frappe.get_all(
+                "Loan Product",
+                fields=["product_name"],
+            )
+            return Response(
+            json.dumps(loan_products),
+            status=200,
+            mimetype="application/json",
+        )
+    except Exception as e:
+        frappe.log_error(
+            title="get_loan_product Error",
+            message=frappe.get_traceback(),
+        )
+        return Response(
+            json.dumps({"status": "error", "message": str(e)}),
+            status=500,
+            mimetype="application/json",
+        )
+
+@frappe.whitelist()
+def create_loan_application(employee: str, product_name: str, amount: float, reason: str = None):
+    try:
+        email=frappe.db.get_value("Employee", employee, "user_id")
+
+        doc = frappe.get_doc({
+            "doctype": "Loan Application",
+            "applicant_type":"Employee",
+            "applicant": employee,
+            "loan_product": product_name,
+            "loan_amount": amount,
+            "company": frappe.defaults.get_user_default("Company"),
+            "posting_date": frappe.utils.nowdate(),
+            "custom_reason": reason,
+        })
+        doc.insert(ignore_permissions=True)
+
+        file_urls = []
+        if frappe.request.files:
+            frappe.form_dict.doctype = "Loan Application"
+            frappe.form_dict.docname = doc.name
+            frappe.form_dict.is_private = 1
+
+            upload_func = frappe.get_attr("employee_app.attendance_api.upload_file")
+            file_urls = upload_func()
+
+        return Response(
+            json.dumps({
+                "status": "success",
+                "data": {
+                    "name": doc.name,
+                    "applicant_email_address": doc.applicant_email_address,
+                    "loan_product": doc.loan_product,
+                    "loan_amount": doc.loan_amount,
+                    "company": doc.company,
+                    "posting_date": doc.posting_date,
+                    "status": doc.status,
+                    "custom_reason": doc.custom_reason,
+                    "file_url": file_urls,
+                },
+            }),
+            status=200,
+            mimetype="application/json",
+        )
+
+    except Exception as e:
+        frappe.log_error(
+            title="create_loan_application Error",
+            message=frappe.get_traceback(),
+        )
+        return Response(
+            json.dumps({"status": "error", "message": str(e)}),
+            status=500,
+            mimetype="application/json",
+        )
