@@ -1495,10 +1495,18 @@ def get_loan_product():
         )
 
 @frappe.whitelist()
-def create_loan_application(employee: str, product_name: str, amount: float, reason: str = None):
+def create_loan_application(employee: str, product_name: str, amount: float, reason: str = None,repayment_amount: float = None):
     try:
         email=frappe.db.get_value("Employee", employee, "user_id")
         product_id= frappe.db.get_value("Loan Product", {"product_name": product_name}, "name")
+        # Get all user input
+        input_data = dict(frappe.form_dict)
+
+        # Remove Frappe internal parameter if present
+        input_data.pop("cmd", None)
+
+        # Convert to JSON string
+        input_data = json.dumps(input_data)
 
         doc = frappe.get_doc({
             "doctype": "Loan Application",
@@ -1508,7 +1516,10 @@ def create_loan_application(employee: str, product_name: str, amount: float, rea
             "loan_amount": amount,
             "company": frappe.defaults.get_user_default("Company"),
             "posting_date": frappe.utils.nowdate(),
+            "repayment_method":"Repay Fixed Amount per Period",
+            "repayment_amount":repayment_amount,
             "custom_reason": reason,
+            "custom_input_data":input_data
         })
         doc.insert(ignore_permissions=True)
 
@@ -1534,6 +1545,8 @@ def create_loan_application(employee: str, product_name: str, amount: float, rea
                     "status": doc.status,
                     "custom_reason": doc.custom_reason,
                     "file_url": file_urls,
+                    "repayment_amount": doc.repayment_amount,
+                    "repayment_method": doc.repayment_method
                 },
             }),
             status=200,
