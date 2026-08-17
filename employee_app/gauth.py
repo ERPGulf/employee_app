@@ -717,3 +717,30 @@ def salary_advance_request(employee,amount,date,reason):
             status=500,
             mimetype="application/json"
         )
+
+@frappe.whitelist()
+def employee_checkin_setting():
+    try:
+        settings = frappe.get_doc("Checkin App Setting")
+        data = {
+            "offline_attendance": bool(settings.offline_attendance) ,
+            "offline_attendance_version": settings.offline_attendance_version,
+            "photo_upload": bool(settings.photo_upload),
+            "offline_correction": bool(settings.offline_correction),
+            "restrict_location": bool(settings.restrict_location),
+            "unrestricted_checkout_location": bool(settings.unrestricted_checkout_location),
+            "employee_shift": bool(settings.employee_shift),
+            "geo_tagging":settings.geo_tagging,
+            "employee_checkin_break": bool(settings.employee_checkin_break),
+        }
+        return Response(
+            json.dumps(data),
+            status=200,
+            mimetype="application/json"
+        )
+    except Exception as e:
+        return Response(
+            json.dumps({"message": f"Error fetching employee checkin settings: {str(e)}"}),
+            status=500,
+            mimetype="application/json"
+        )

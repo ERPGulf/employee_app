@@ -589,6 +589,8 @@ def list_items(item_group=None, last_updated_time=None, pos_profile = None):
         )
 
 
+
+
 def create_qr_code(doc, method):
     """Create QR Code after inserting Sales Inv"""
 

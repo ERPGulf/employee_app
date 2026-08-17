@@ -7,6 +7,16 @@
  "field_order": [
   "company",
   "api_key",
+  "column_break_ojmn",
+  "offline_attendance",
+  "offline_attendance_version",
+  "photo_upload",
+  "offline_correction",
+  "restrict_location",
+  "unrestricted_checkout_location",
+  "employee_shift",
+  "geo_tagging",
+  "employee_checkin_break",
   "section_break_iwiu",
   "column_break_wwrs",
   "shortcut_1",
@@ -147,13 +157,70 @@
    "fieldname": "api_key",
    "fieldtype": "Data",
    "label": "Google Map Api Key"
+  },
+  {
+   "fieldname": "column_break_ojmn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "offline_attendance",
+   "fieldtype": "Check",
+   "label": "Offline Attendance"
+  },
+  {
+   "fieldname": "offline_attendance_version",
+   "fieldtype": "Data",
+   "label": "Offline Attendance Version"
+  },
+  {
+   "default": "0",
+   "fieldname": "photo_upload",
+   "fieldtype": "Check",
+   "label": "Photo Upload"
+  },
+  {
+   "default": "0",
+   "fieldname": "offline_correction",
+   "fieldtype": "Check",
+   "label": "Offline Correction"
+  },
+  {
+   "default": "0",
+   "fieldname": "restrict_location",
+   "fieldtype": "Check",
+   "label": "Restrict location"
+  },
+  {
+   "default": "0",
+   "fieldname": "unrestricted_checkout_location",
+   "fieldtype": "Check",
+   "label": "Unrestricted Checkout location"
+  },
+  {
+   "default": "0",
+   "fieldname": "employee_shift",
+   "fieldtype": "Check",
+   "label": " Employee Shift"
+  },
+  {
+   "fieldname": "geo_tagging",
+   "fieldtype": "Select",
+   "label": "Geo Tagging ",
+   "options": "Disable geotagging\nEnable geotagging for warnings only\nEnable geotagging for all attendance actions"
+  },
+  {
+   "default": "0",
+   "fieldname": "employee_checkin_break",
+   "fieldtype": "Check",
+   "label": "Employee Checkin Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-06-11 09:34:50.716087",
+ "modified": "2026-08-12 13:40:04.723306",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Checkin App Setting",

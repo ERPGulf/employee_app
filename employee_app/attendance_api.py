@@ -270,7 +270,7 @@ def upload_file():
 
     return urls
 
-
+@frappe.whitelist(allow_guest=True)
 def _get_compound_code_from_coordinates(coordinates: str) -> str:
 
     try:
@@ -297,7 +297,7 @@ def add_log_based_on_employee_field(
     location: str = None,
     device_id: str = None,
     log_type: str = None,
-    over_time: str = None
+    over_time:int = None
 ):
     """Add Employee Checkin log entry"""
     try:
@@ -325,6 +325,7 @@ def add_log_based_on_employee_field(
                     checkin_location = location
                 else:
                     unrestricted_checkin_location = _get_compound_code_from_coordinates(location)
+
             else:
 
                 checkin_location = location
@@ -571,11 +572,12 @@ def employee_checkin_handler(doc, method):
 
 
 @frappe.whitelist()
-def get_expense_claims(employee: str = None, limit: int = 100):
+def get_expense_claims(employeeCode: str = None, limit: int = 100):
     """API to fetch Expense Claim details"""
+
     filters = {}
-    if employee:
-        filters["employee"] = employee
+    if employeeCode:
+        filters["employee"] = employeeCode
 
     expense_claims = frappe.get_all(
         "Expense Claim",
@@ -1058,6 +1060,7 @@ def get_expense_claim_type():
 
 
 
+
 @frappe.whitelist(allow_guest=True)
 def create_complaint(employee: str, date: str, message: str):
     try:
@@ -1470,3 +1473,89 @@ def add_diagnostic_message(message):
             status=500,
             mimetype="application/json",
         )
+
+
+
+
+
+@frappe.whitelist()
+def add_offline_employee_checkins(logs):
+    try:
+        if isinstance(logs, str):
+            logs = json.loads(logs)
+
+        inserted = []
+        failed = []
+
+        for row in logs:
+            try:
+                result = add_log_based_on_employee_field(
+                    employee_field_value=row.get("employee"),
+                    timestamp=row.get("timestamp"),
+                    location=row.get("location"),
+                    device_id=row.get("device_id"),
+                    log_type=row.get("log_type"),
+                    over_time=row.get("over_time"),
+                )
+
+                if isinstance(result, dict) and result.get("error"):
+                    failed.append({
+                        "employee": row.get("employee"),
+                        "timestamp": row.get("timestamp"),
+                        "error": result.get("error")
+                    })
+                else:
+                    inserted.append(result.name)
+
+            except Exception as e:
+                failed.append({
+                    "employee": row.get("employee"),
+                    "timestamp": row.get("timestamp"),
+                    "error": str(e)
+                })
+
+        frappe.db.commit()
+
+        # All records inserted successfully
+        if not failed:
+            return Response(
+                json.dumps({
+                    "status": "success",
+                    "message": "All records inserted successfully.",
+                    "inserted_count": len(inserted),
+                    "failed_count": 0,
+                    "inserted": inserted
+                }),
+                status=200,
+                mimetype="application/json",
+            )
+
+        # Partial success or complete failure
+        status_code = 500 if len(inserted) == 0 else 207
+
+        return Response(
+            json.dumps({
+                "status": "error" if len(inserted) == 0 else "partial_success",
+                "message": "Some records could not be processed."
+                if inserted else "Failed to insert records.",
+                "inserted_count": len(inserted),
+                "failed_count": len(failed),
+                "inserted": inserted,
+                "failed": failed
+            }),
+            status=status_code,
+            mimetype="application/json",
+        )
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Bulk Employee Checkin Error")
+
+        return Response(
+            json.dumps({
+                "status": "error",
+                "message": str(e)
+            }),
+            status=500,
+            mimetype="application/json",
+        )
+
