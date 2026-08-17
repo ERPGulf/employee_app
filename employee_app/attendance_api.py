@@ -572,12 +572,17 @@ def employee_checkin_handler(doc, method):
 
 
 @frappe.whitelist()
-def get_expense_claims(employeeCode: str = None, limit: int = 100):
+def get_expense_claims(employeeCode: str, limit: int = 100):
     """API to fetch Expense Claim details"""
-
-    filters = {}
-    if employeeCode:
-        filters["employee"] = employeeCode
+    employee=frappe.get_doc("Employee", employeeCode)
+    if not employee:
+        frappe.log_error(frappe.get_traceback(), "Expense Claim API Error")
+        return Response(
+            json.dumps({"error": "Employee not found"}),
+            status=404,
+            mimetype="application/json",
+        )
+    filters = {"employee": employeeCode}
 
     expense_claims = frappe.get_all(
         "Expense Claim",
