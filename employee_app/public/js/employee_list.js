@@ -23,11 +23,11 @@ function open_location_dialog(listview) {
                 label: __("Mode"),
                 fieldtype: "Select",
                 options: [
-                    { value: "replace", label: __("Replace existing") },
                     { value: "append", label: __("Add to existing") },
                     { value: "remove", label: __("Remove these") },
+                    { value: "replace", label: __("Replace existing (Delete Current)") },
                 ],
-                default: "replace",
+                default: "append",
                 reqd: 1,
             },
             {
