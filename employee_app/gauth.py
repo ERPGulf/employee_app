@@ -278,6 +278,7 @@ class GAuth:
                 + "/api/method/frappe.integrations.oauth2.get_token"
             )
 
+
             payload = {
                 "username": api_key,
                 "password": api_secret,
