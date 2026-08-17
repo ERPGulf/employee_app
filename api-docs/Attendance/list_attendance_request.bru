@@ -1,0 +1,67 @@
+meta {
+  name: list_attendance_request
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/api/method/employee_app.employee_list.list_attendance_request
+  body: form-urlencoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  limit_start: 0
+  limit_page_length: 20
+}
+
+docs {
+  # List Attendance Request
+
+  Retrieves Attendance Request records for the currently logged-in employee
+  (resolved from the bearer token's user), paginated and sorted by creation date descending.
+
+  ## Authentication
+  Requires a valid Bearer token. The employee is derived from the token's user, not passed in.
+
+  ## Parameters
+
+  | Name               | Type | Required | Description                          |
+  |--------------------|------|----------|--------------------------------------|
+  | limit_start        | int  | No       | Pagination offset (default `0`)      |
+  | limit_page_length  | int  | No       | Page size (default `20`)             |
+
+  ## Response
+
+  ```json
+  {
+    "message": [
+      {
+        "name": "HR-ATT-REQ-2026-00001",
+        "employee": "HR-EMP-00003",
+        "employee_name": "John Doe",
+        "from_date": "2026-06-01",
+        "to_date": "2026-06-01",
+        "from_time": "08:11:11",
+        "to_time": "16:11:11",
+        "reason": "Work From Home",
+        "explanation": null,
+        "half_day": 0,
+        "status": "Open"
+      }
+    ]
+  }
+  ```
+
+  ## Notes
+  - `status` is derived from `docstatus`: `0` = Open, `1` = Approved, `2` = Cancelled.
+  - Returns a 404 JSON error if no Employee record is linked to the logged-in user.
+}
