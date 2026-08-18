@@ -7,6 +7,13 @@
  "field_order": [
   "company",
   "api_key",
+  "loan_application",
+  "leave_request",
+  "expense_claim",
+  "attendance_request",
+  "attendance_history",
+  "employee_records",
+  "complaints",
   "column_break_ojmn",
   "offline_attendance",
   "offline_attendance_version",
@@ -214,13 +221,55 @@
    "fieldname": "employee_checkin_break",
    "fieldtype": "Check",
    "label": "Employee Checkin Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "loan_application",
+   "fieldtype": "Check",
+   "label": "Loan Application"
+  },
+  {
+   "default": "0",
+   "fieldname": "leave_request",
+   "fieldtype": "Check",
+   "label": "Leave Request"
+  },
+  {
+   "default": "0",
+   "fieldname": "expense_claim",
+   "fieldtype": "Check",
+   "label": "Expense Claim"
+  },
+  {
+   "default": "0",
+   "fieldname": "attendance_request",
+   "fieldtype": "Check",
+   "label": "Attendance Request"
+  },
+  {
+   "default": "0",
+   "fieldname": "attendance_history",
+   "fieldtype": "Check",
+   "label": "Attendance History"
+  },
+  {
+   "default": "0",
+   "fieldname": "employee_records",
+   "fieldtype": "Check",
+   "label": "Employee Records"
+  },
+  {
+   "default": "0",
+   "fieldname": "complaints",
+   "fieldtype": "Check",
+   "label": "Complaints"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-12 13:40:04.723306",
+ "modified": "2026-08-18 09:56:10.101441",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Checkin App Setting",

@@ -733,6 +733,12 @@ def employee_checkin_setting():
             "employee_shift": bool(settings.employee_shift),
             "geo_tagging":settings.geo_tagging,
             "employee_checkin_break": bool(settings.employee_checkin_break),
+            "loan_application": bool(settings.loan_application),
+            "leave_request": bool(settings.leave_request),
+            "attendance_request": bool(settings.attendance_request),
+            "attendance_history": bool(settings.attendance_history),
+            "employee_records": bool(settings.employee_records),
+            "complaints": bool(settings.complaints),
         }
         return Response(
             json.dumps(data),
