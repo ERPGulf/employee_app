@@ -724,19 +724,20 @@ def employee_checkin_setting():
     try:
         settings = frappe.get_doc("Checkin App Setting")
         data = {
-            "offline_attendance": bool(settings.offline_attendance) ,
-            "offline_attendance_version": settings.offline_attendance_version,
-            "photo_upload": bool(settings.photo_upload),
-            "offline_correction": bool(settings.offline_correction),
-            "restrict_location": bool(settings.restrict_location),
-            "unrestricted_checkout_location": bool(settings.unrestricted_checkout_location),
-            "employee_shift": bool(settings.employee_shift),
-            "geo_tagging":settings.geo_tagging,
-            "employee_checkin_break": bool(settings.employee_checkin_break),
+            "attendance_action": {
+                "offline_attendance": bool(settings.offline_attendance),
+                "offline_attendance_version": settings.offline_attendance_version,
+                "photo_upload": bool(settings.photo_upload),
+                "restrict_location": bool(settings.restrict_location),
+                "unrestricted_checkout_location": bool(settings.unrestricted_checkout_location),
+                "employee_shift": bool(settings.employee_shift),
+                "geo_tagging": settings.geo_tagging,
+                "employee_checkin_break": bool(settings.employee_checkin_break),
+                "attendance_request": bool(settings.attendance_request),
+                "attendance_history": bool(settings.attendance_history),
+            },
             "loan_application": bool(settings.loan_application),
             "leave_request": bool(settings.leave_request),
-            "attendance_request": bool(settings.attendance_request),
-            "attendance_history": bool(settings.attendance_history),
             "employee_records": bool(settings.employee_records),
             "complaints": bool(settings.complaints),
         }
