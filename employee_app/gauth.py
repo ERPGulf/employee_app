@@ -12,7 +12,9 @@ from frappe.utils import getdate, nowdate
 from frappe.utils import random_string
 from frappe import _
 import re
-
+import random
+from frappe.utils.password import check_password
+from frappe.utils.password import update_password
 
 class GAuth:
     """Authentication handler for employee app token generation and management."""
@@ -716,6 +718,236 @@ def salary_advance_request(employee,amount,date,reason):
         return Response(
             json.dumps({"message": f"Error creating salary advance request: {str(e)}"}),
             status=500,
+            mimetype="application/json"
+        )
+
+
+@frappe.whitelist()
+def create_overtime_request(employee, date,overtime_hours=None, from_time=None, to_time=None,reason=None):
+    try:
+        doc = frappe.get_doc({
+            "doctype": "Overtime Request",
+            "employee": employee,
+            "date": date,
+            "from_time": from_time,
+            "to_time": to_time,
+            "reason": reason,
+            "overtime_hour": overtime_hours
+        })
+        doc.insert()
+
+        data = {
+            "name": doc.name,
+            "employee": doc.employee,
+            "date": str(doc.date),
+            "from_time": str(doc.from_time),
+            "to_time": str(doc.to_time),
+            "reason": doc.reason,
+            "overtime_hours": int(doc.overtime_hour) if doc.overtime_hour is not None else 0
+        }
+
+        return Response(
+            json.dumps(data),
+            status=200,
+            mimetype="application/json"
+        )
+
+    except Exception as e:
+        return Response(
+            json.dumps({"message": f"Error creating overtime request: {str(e)}"}),
+            status=500,
+            mimetype="application/json"
+        )
+
+@frappe.whitelist()
+def get_employee_overtime_requests(employee,date=None):
+    try:
+        overtime_requests = frappe.get_all(
+            "Overtime Request",
+            filters={"employee": employee, "date": date} if date else {"employee": employee},
+            fields=["name", "date", "from_time", "to_time", "reason", "status"]
+        )
+
+        data = [
+            {
+                "name": req.name,
+                "date": str(req.date),
+                "from_time": str(req.from_time),
+                "to_time": str(req.to_time),
+                "reason": req.reason,
+                "status": req.status
+            }
+            for req in overtime_requests
+        ]
+
+        return Response(
+            json.dumps(data),
+            status=200,
+            mimetype="application/json"
+        )
+
+    except Exception as e:
+        return Response(
+            json.dumps({"message": f"Error fetching overtime requests: {str(e)}"}),
+            status=500,
+            mimetype="application/json"
+        )
+
+
+
+@frappe.whitelist()
+def validate_old_password(password):
+    user =frappe.session.user
+    employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+    mobile = frappe.db.get_value("Employee", employee, "cell_number")
+
+    if not user:
+        return Response(
+            json.dumps({"message": "User not found for the given employee."}),
+            status=404,
+            mimetype="application/json"
+        )
+
+    try:
+        pwd=check_password(user, password)
+
+    except frappe.AuthenticationError:
+        data = {
+            "status": "error",
+            "message": "Wrong password"
+        }
+        return Response(
+            json.dumps({"data": data}),
+            status=401,
+            mimetype="application/json"
+        )
+
+    otp = 123456  # For testing purposes, you can generate a random OTP using random.randint(100000, 999999)
+    key = f"otp:{user}"
+
+    frappe.cache().set_value(
+        key,
+        {
+            "otp": otp,
+            "mobile": mobile
+        },
+        expires_in_sec=300
+    )
+    data = {
+        "status": "success",
+        "otp": otp
+    }
+    return Response(
+            json.dumps({"data": data}),
+            status=200,
+            mimetype="application/json"
+        )
+
+
+@frappe.whitelist()
+def resend_otp():
+    user = frappe.session.user
+    employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+    mobile = frappe.db.get_value("Employee", employee, "cell_number")
+
+    if not user:
+        return Response(
+            json.dumps({"message": "User not found for the given employee."}),
+            status=404,
+            mimetype="application/json"
+        )
+
+    otp = 123456  # For testing purposes, you can generate a random OTP using random.randint(100000, 999999)
+    key = f"otp:{user}"
+
+    frappe.cache().set_value(
+        key,
+        {
+            "otp": otp,
+            "mobile": mobile
+        },
+        expires_in_sec=300
+    )
+    data = {
+        "status": "success",
+        "otp": otp
+    }
+    return Response(
+            json.dumps({"data": data}),
+            status=200,
+            mimetype="application/json"
+        )
+
+
+@frappe.whitelist()
+def verify_otp(otp):
+
+    user = frappe.session.user
+
+    if not user:
+        return Response(
+            json.dumps({"message": "User not found for the given employee."}),
+            status=404,
+            mimetype="application/json"
+        )
+
+    key = f"otp:{user}"
+    stored = frappe.cache().get_value(key)
+
+    if not stored:
+        data = {
+                "status": "error",
+                "message": "OTP expired or not found"
+               }
+        return Response(
+            json.dumps({"data": data}),
+            status=404,
+            mimetype="application/json"
+        )
+    if stored.get("otp") != otp:
+        data={
+            "status": "error",
+            "message": "Invalid OTP"
+            }
+        return Response(
+            json.dumps({"data": data}),
+            status=404,
+            mimetype="application/json"
+        )
+
+    frappe.cache().delete_key(key)
+
+    data = {
+        "status": "success",
+        "message": "OTP verified"
+        }
+    return Response(
+            json.dumps({"data": data}),
+            status=200,
+            mimetype="application/json"
+        )
+
+
+@frappe.whitelist()
+def create_new_password(new_password):
+    user = frappe.session.user
+    if not user:
+        return Response(
+            json.dumps({"message": "User not found for the given employee."}),
+            status=404,
+            mimetype="application/json"
+        )
+
+    pwd=update_password(user, new_password)
+
+
+    data = {
+        "status": "success",
+        "message": "Password updated successfully"
+    }
+    return Response(
+            json.dumps({"data": data}),
+            status=200,
             mimetype="application/json"
         )
 

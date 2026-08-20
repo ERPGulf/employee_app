@@ -1139,3 +1139,109 @@ def list_material_requests(id=None):
             status=500,
             mimetype="application/json"
         )
+
+@frappe.whitelist(allow_guest=True)
+def items(search_value=None, pos_profile=None):
+    """
+    Fetch a single item by matching search_value against item code, item name,
+    or barcode, in that order - whichever matches first is used.
+    """
+    try:
+        if not search_value:
+            return Response(
+                json.dumps({"error": "search_value is required"}),
+                status=400,
+                mimetype="application/json"
+            )
+
+        item_code = None
+        matched_barcode_uom = None
+
+        if frappe.db.exists("Item", search_value):
+            item_code = search_value
+
+        if not item_code:
+            item_code = frappe.db.get_value("Item", {"item_name": search_value}, "name")
+
+        if not item_code:
+            barcode_row = frappe.db.get_value(
+                "Item Barcode", {"barcode": search_value}, ["parent", "uom"], as_dict=True
+            )
+            if barcode_row:
+                item_code = barcode_row.parent
+                matched_barcode_uom = barcode_row.uom
+
+        if not item_code:
+            return Response(
+                json.dumps({"error": "No item found matching the given value"}),
+                status=404,
+                mimetype="application/json"
+            )
+
+        item = frappe.get_doc("Item", item_code)
+
+        if item.disabled:
+            return Response(
+                json.dumps({"error": "Item is disabled"}),
+                status=404,
+                mimetype="application/json"
+            )
+
+        item_group_disabled = frappe.db.get_value(
+            "Item Group", item.item_group, "custom_disabled"
+        )
+
+        if item_group_disabled:
+            return Response(
+                json.dumps({"error": "Item group is disabled"}),
+                status=404,
+                mimetype="application/json"
+            )
+
+        uoms = frappe.get_all(
+            "UOM Conversion Detail",
+            filters={"parent": item.name},
+            fields=["uom"],
+        )
+
+        price_list = "Retail Price"
+        if pos_profile:
+            price_list = frappe.db.get_value(
+                "POS Profile", pos_profile, "selling_price_list"
+            ) or "Retail Price"
+
+        item_prices = frappe.get_all(
+            "Item Price",
+            fields=["price_list_rate", "uom", "creation"],
+            filters={"item_code": item.name, "price_list": price_list},
+            order_by="creation",
+        )
+
+        price_map = {price.uom: price.price_list_rate for price in item_prices}
+
+        if matched_barcode_uom:
+            uoms = [uom for uom in uoms if uom.uom == matched_barcode_uom]
+
+        result = {
+            "item_code": item.name,
+            "item_name": item.item_name,
+            "uom": [
+                {
+                    "uom": uom.uom,
+                    "price": round(price_map.get(uom.uom, 0.0), 2),
+                }
+                for uom in uoms
+            ],
+        }
+
+        return Response(
+            json.dumps({"data": result}),
+            status=200,
+            mimetype="application/json"
+        )
+    except Exception as e:
+        return Response(
+            json.dumps({"error": str(e)}),
+            status=404,
+            mimetype="application/json"
+        )

@@ -6,7 +6,6 @@ app_publisher = "ERPGulf.com"
 app_description = "Attendance and related submissions through mobile APP"
 app_email = "support@ERPGulf.com"
 app_license = "MIT"
-
 required_apps = ["hrms"]
 
 fixtures = [
@@ -37,5 +36,3 @@ doc_events = {
 doctype_js = {
     "Employee Notification": "public/fetch_employee.js"
 }
-
-

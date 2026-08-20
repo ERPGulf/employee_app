@@ -1,5 +1,6 @@
 import frappe
 import json
+import base64
 from datetime import date, datetime, timedelta, time
 import os
 from frappe.utils import cint
@@ -9,7 +10,13 @@ from frappe.utils import get_time
 from frappe.utils import nowdate
 from werkzeug.wrappers import Response
 from frappe import _
-from hrms.hr.doctype.employee_checkin.employee_checkin import calculate_working_hours
+from hrms.hr.doctype.employee_checkin.employee_checkin import (
+    calculate_working_hours,
+    mark_attendance_and_link_log,
+)
+from hrms.hr.doctype.shift_assignment.shift_assignment import (
+    get_actual_start_end_datetime_of_shift,
+)
 from frappe.utils import get_datetime
 from datetime import date
 from frappe.utils import getdate, get_datetime
@@ -297,12 +304,23 @@ def add_log_based_on_employee_field(
     location: str = None,
     device_id: str = None,
     log_type: str = None,
-    over_time:int = None
+    over_time: int = None,
+    file: str = None,
 ):
     """Add Employee Checkin log entry"""
     try:
         if log_type:
             log_type = get_log_type(employee_field_value, timestamp, log_type)
+
+        if log_type in ("OUT", "Early Exit"):
+            last_checkin_time = frappe.db.get_value(
+                "Employee Checkin",
+                {"employee": employee_field_value, "log_type": "IN"},
+                "time",
+                order_by="time desc",
+            )
+            if last_checkin_time and get_datetime(timestamp) < get_datetime(last_checkin_time):
+                return {"error": "Checkout time cannot be before the last check-in time"}
 
         checkin_location = None
         unrestricted_checkin_location = None
@@ -339,9 +357,19 @@ def add_log_based_on_employee_field(
             "custom_employee_chekin_location": checkin_location,
             "custom_employee_chekin_or_checkout_location": unrestricted_checkin_location,
             "custom_over_time": over_time
+
         })
 
         doc.insert(ignore_permissions=True)
+        file_urls = []
+
+        if frappe.request.files:
+            frappe.form_dict.doctype = "Employee Checkin"
+            frappe.form_dict.docname = doc.name
+            frappe.form_dict.is_private = 1
+
+            upload_func = frappe.get_attr("employee_app.attendance_api.upload_file")
+            file_urls = upload_func()
 
         return doc
 
@@ -392,11 +420,74 @@ def get_employee_data(employee_id: str = None):
                     mimetype="application/json",
                 )
 
+            last_break_log = frappe.db.get_value(
+                "Employee Break",
+                {"employee": employee_id},
+                ["log_type"],
+                order_by="time desc",
+                as_dict=True,
+            )
+
+            break_status = 1 if last_break_log and last_break_log.log_type == "IN" else 0
+
             child_locations = frappe.get_all(
                 "Employee Location Child Table",
                 filters={"parent": employee_id, "parenttype": "Employee"},
                 fields=["location"],
             )
+            shift_assignment = frappe.db.get_value(
+            "Shift Assignment",
+            {
+                "employee": employee_id,
+                "status": "Active"
+            },
+            [
+                "shift_type",
+                "start_date",
+                "end_date",
+                "status"
+            ],
+            order_by="start_date desc",
+            as_dict=True,
+        )
+
+            shift_details = {}
+
+            if shift_assignment:
+                shift_time = frappe.db.get_value(
+                    "Shift Type",
+                    shift_assignment.shift_type,
+                    [
+                        "start_time",
+                        "end_time",
+                        "allow_overtime",
+                        "overtime_type",
+                        "begin_check_in_before_shift_start_time",
+                        "allow_check_out_after_shift_end_time"
+                    ],
+                    as_dict=True,
+                )
+
+                overtime_hours_per_day = None
+                if shift_time and shift_time.allow_overtime and shift_time.overtime_type:
+                    overtime_hours_per_day = frappe.db.get_value(
+                        "Overtime Type",
+                        shift_time.overtime_type,
+                        "maximum_overtime_hours_allowed",
+                    )
+
+                shift_details = {
+                    "shift_name": shift_assignment.shift_type,
+                    "start_date": str(shift_assignment.start_date),
+                    "end_date": str(shift_assignment.end_date),
+                    "status": shift_assignment.status,
+                    "start_time": str(shift_time.start_time) if shift_time else None,
+                    "end_time": str(shift_time.end_time) if shift_time else None,
+                    "overtime_hours_per_day": overtime_hours_per_day,
+                    "begin_check_in_before_shift_start_time": shift_time.begin_check_in_before_shift_start_time if shift_time else None,
+                    "allow_check_out_after_shift_end_time": shift_time.allow_check_out_after_shift_end_time if shift_time else None,
+
+                }
 
             location_details = []
             for row in child_locations:
@@ -426,16 +517,21 @@ def get_employee_data(employee_id: str = None):
             }
 
             result = {
-                "name": data.get("name"),
-                "first_name": data.get("employee_name"),
-                "custom_in": data.get("custom_in"),
-                "restrict_location": data.get("custom_restrict_location"),
-                "unrestricted_checkout_location": data.get("custom_unrestricted_checkout_location"),
-                "photo": data.get("custom_photo_"),
-                "geotagging": geotagging_map.get(data.get("custom_geotagging"), 0),
-                "employee_locations": location_details,
+            "name": data.get("name"),
+            "first_name": data.get("employee_name"),
+            "custom_in": data.get("custom_in"),
+            "restrict_location": data.get("custom_restrict_location"),
+            "unrestricted_checkout_location": data.get("custom_unrestricted_checkout_location"),
+            "photo": data.get("custom_photo_"),
+            "overtime_in": data.get("custom_overtime_in"),
+            "break_status": break_status,
+            "session_window": data.get("custom_session_window"),
+            "geotagging": geotagging_map.get(data.get("custom_geotagging"), 0),
+            "employee_locations": location_details,
+            "shift_details": shift_details,
 
-            }
+
+        }
         else:
             result = frappe.get_all("Employee", pluck="name")
 
@@ -558,6 +654,110 @@ def get_log_type(employee: str, punch_time: str, log_type: str):
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Get Log Type Error")
         return log_type or "IN"
+
+
+def _get_shift_occurrence_for_now(shift_doc, now):
+    """Return the (start, end) datetime window of the shift occurrence that
+    contains `now`, checking today's and yesterday's occurrence so overnight
+    shifts (end_time < start_time) are handled correctly."""
+    for day_offset in (0, -1):
+        day = (now + timedelta(days=day_offset)).date()
+        shift_start = datetime.combine(day, get_time(shift_doc.start_time))
+        shift_end = datetime.combine(day, get_time(shift_doc.end_time))
+        if shift_end <= shift_start:
+            shift_end += timedelta(days=1)
+        if shift_start <= now < shift_end:
+            return shift_start, shift_end
+
+    day = now.date()
+    shift_start = datetime.combine(day, get_time(shift_doc.start_time))
+    shift_end = datetime.combine(day, get_time(shift_doc.end_time))
+    if shift_end <= shift_start:
+        shift_end += timedelta(days=1)
+    return shift_start, shift_end
+
+
+def _has_approved_overtime_now(employee, now):
+    """Check if an approved Overtime Request for `employee` covers `now`'s date.
+    The Overtime Request only carries a `date` (from_time/to_time aren't sent by
+    the app), so "covers now" means approved for today."""
+    return frappe.db.exists(
+        "Overtime Request",
+        {
+            "employee": employee,
+            "status": "Approved",
+            "date": getdate(now),
+        },
+    )
+
+
+def determine_session_window(employee, now=None):
+    """Work out what custom_session_window should be for `employee` right now:
+    - "Regular" while the employee's active shift is running
+    - "OverTime" once the shift has ended, if an approved Overtime Request covers now
+    - "None" otherwise (shift not started yet, or shift ended with no approved overtime)
+    """
+    now = now or now_datetime()
+
+    shift_type = frappe.db.get_value(
+        "Shift Assignment", {"employee": employee, "status": "Active"}, "shift_type"
+    )
+
+    if shift_type:
+        shift_doc = frappe.get_cached_doc("Shift Type", shift_type)
+        shift_start, shift_end = _get_shift_occurrence_for_now(shift_doc, now)
+        if shift_start <= now < shift_end:
+            return "Regular"
+
+    if _has_approved_overtime_now(employee, now):
+        return "OverTime"
+
+    return "None"
+
+
+def sync_employee_session_window(employee):
+    """Recompute and persist custom_session_window for a single employee"""
+    window = determine_session_window(employee)
+    if frappe.db.get_value("Employee", employee, "custom_session_window") != window:
+        frappe.db.set_value("Employee", employee, "custom_session_window", window)
+    return window
+
+
+@frappe.whitelist()
+def sync_all_employee_session_windows():
+    """Scheduled job: refresh custom_session_window for every employee with an
+    active shift assignment, a currently approved overtime request, or an
+    already-set "OverTime" window (so it gets cleared once it no longer applies)"""
+    now = now_datetime()
+
+    employees = set(
+        frappe.get_all(
+            "Shift Assignment", filters={"status": "Active"}, pluck="employee"
+        )
+    )
+    employees.update(
+        frappe.get_all(
+            "Overtime Request",
+            filters={
+                "status": "Approved",
+            },
+            pluck="employee",
+        )
+    )
+    employees.update(
+        frappe.get_all(
+            "Employee", filters={"custom_session_window": "OverTime"}, pluck="name"
+        )
+    )
+
+    updated = {}
+    for employee in employees:
+        if employee:
+            updated[employee] = sync_employee_session_window(employee)
+
+    return updated
+
+
 
 
 def employee_checkin_handler(doc, method):
@@ -710,15 +910,25 @@ def create_leave_application(
             "doctype": "Leave Application",
             "employee": employee,
             "leave_type": leave_type,
-            "from_date": from_date,
-            "to_date": to_date,
-            "posting_date": posting_date or frappe.utils.nowdate(),
+            "from_date": getdate(from_date),
+            "to_date": getdate(to_date),
+            "posting_date": getdate(posting_date) if posting_date else frappe.utils.nowdate(),
             "description": reason or "",
             "company": frappe.defaults.get_user_default("Company"),
             "custom_acknowledgement_policy1": acknowledgement_policy if acknowledgement_policy else None,
         })
         doc.insert(ignore_permissions=True)
         # frappe.db.commit() removed — Frappe handles transaction commit automatically
+
+        file_urls = []
+
+        if frappe.request.files:
+            frappe.form_dict.doctype = "Leave Application"
+            frappe.form_dict.docname = doc.name
+            frappe.form_dict.is_private = 1
+
+            upload_func = frappe.get_attr("employee_app.attendance_api.upload_file")
+            file_urls = upload_func()
 
         data = {
             "id": doc.name,
@@ -728,7 +938,8 @@ def create_leave_application(
             "to_date": str(doc.to_date),
             "posting_date": str(doc.posting_date),
             "status": doc.status,
-            "agreement": doc.custom_agreement,
+            "reason": doc.description,
+            "file_url": file_urls,
         }
 
         return Response(json.dumps(data), status=200, mimetype="application/json")
@@ -1067,34 +1278,50 @@ def get_expense_claim_type():
     return expense_types
 
 
-
-
 @frappe.whitelist(allow_guest=True)
-def create_complaint(employee: str, date: str, message: str):
+def create_complaint(employee: str, date: str, message: str,complaint_type: str = None, file: str = None):
+
     try:
         doc = frappe.get_doc({
             "doctype": "Employee Complaint",
             "date": date,
             "employee": employee,
             "message": message,
+            "custom_complaint_type": complaint_type
         })
         doc.insert(ignore_permissions=True)
 
-        return {
+
+        file_urls = []
+
+        if frappe.request.files:
+            frappe.form_dict.doctype = "Employee Complaint"
+            frappe.form_dict.docname = doc.name
+            frappe.form_dict.is_private = 1
+
+            upload_func = frappe.get_attr("employee_app.attendance_api.upload_file")
+            file_urls = upload_func()
+
+        data = {
+            "status": "success",
             "name": doc.name,
             "employee": doc.employee,
             "date": doc.date,
             "message": doc.message,
+            "complaint_type": doc.custom_complaint_type,
+            "file_url": file_urls,
         }
+        return data
 
-    except Exception as e:
+    except Exception:
         frappe.log_error(
             title="Create Employee Complaint Failed",
             message=frappe.get_traceback(),
         )
-        return {"status": "error", "message": str(e)}
-
-
+        return {
+            "status": "error",
+            "message": frappe.get_traceback(),
+        }
 @frappe.whitelist()
 def Employee_break(
     employee_field_value: str,
@@ -1212,7 +1439,6 @@ def get_employee_working_hours(employee, date):
     total_hours = working_hours[0] if working_hours else 0
     return total_hours
 
-
 def format_hours_to_hhmm(hours):
     total_minutes = round(hours * 60)
     hh, mm = divmod(total_minutes, 60)
@@ -1274,6 +1500,11 @@ def _calculate_break_hours(employee, date):
             last_break_start = None
 
     return total_break_seconds / 3600
+
+
+@frappe.whitelist()
+def get_break_hours(employee, date):
+    return format_hours_to_hhmm(_calculate_break_hours(employee, date))
 
 
 @frappe.whitelist()
@@ -1371,10 +1602,10 @@ def override_working_hours(doc, method):
         doc.custom_break_application_approved = 0
 
     working_hours = get_employee_working_hours(doc.employee, doc.attendance_date)
-    break_hours_numeric = _calculate_break_hours(doc.employee, doc.attendance_date)
+    break_hours = _calculate_break_hours(doc.employee, doc.attendance_date)
 
-    net_hours = max(working_hours - break_hours_numeric, 0)
-    doc.custom_break_hours = format_hours_to_hhmm(break_hours_numeric)
+    net_hours = max(working_hours - break_hours, 0)
+    doc.custom_break_hours = format_hours_to_hhmm(break_hours)
     doc.working_hours = round(net_hours, 2)
 
 
@@ -1398,6 +1629,7 @@ def get_monthly_break_hours(employee, date):
     for day in range(1, num_days + 1):
         current_date = datetime(year, month, day).date()
 
+        daily_hours = _calculate_break_hours(employee, current_date)
         daily_hours = _calculate_break_hours(employee, current_date)
 
         if daily_hours:
@@ -1576,6 +1808,28 @@ def create_loan_application(employee: str, product_name: str, amount: float, rea
         )
 
 
+def get_complaint_types():
+    """Fetch all complaint types from Employee Complaint Type DocType."""
+    try:
+        complaint_types = frappe.get_all(
+            "Complaint Type",
+            fields=["name"],
+            order_by="name asc"
+        )
+
+        return complaint_types
+    except Exception as e:
+        frappe.log_error(
+            title="get_complaint_types Error",
+            message=frappe.get_traceback(),
+        )
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+
 @frappe.whitelist()
 def add_offline_employee_checkins(logs):
     try:
@@ -1656,4 +1910,3 @@ def add_offline_employee_checkins(logs):
             status=500,
             mimetype="application/json",
         )
-
