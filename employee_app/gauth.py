@@ -822,7 +822,7 @@ def validate_old_password(password):
             mimetype="application/json"
         )
 
-    otp = 123456  # For testing purposes, you can generate a random OTP using random.randint(100000, 999999)
+    otp = frappe.get_doc("Whatsapp Saudi").testing_otp  # For testing purposes, you can generate a random OTP using random.randint(100000, 999999)
     key = f"otp:{user}"
 
     frappe.cache().set_value(
@@ -857,7 +857,7 @@ def resend_otp():
             mimetype="application/json"
         )
 
-    otp = 123456  # For testing purposes, you can generate a random OTP using random.randint(100000, 999999)
+    otp = frappe.get_doc("Whatsapp Saudi").testing_otp # For testing purposes, you can generate a random OTP using random.randint(100000, 999999)
     key = f"otp:{user}"
 
     frappe.cache().set_value(
@@ -956,15 +956,22 @@ def employee_checkin_setting():
     try:
         settings = frappe.get_doc("Checkin App Setting")
         data = {
-            "offline_attendance": bool(settings.offline_attendance) ,
-            "offline_attendance_version": settings.offline_attendance_version,
-            "photo_upload": bool(settings.photo_upload),
-            "offline_correction": bool(settings.offline_correction),
-            "restrict_location": bool(settings.restrict_location),
-            "unrestricted_checkout_location": bool(settings.unrestricted_checkout_location),
-            "employee_shift": bool(settings.employee_shift),
-            "geo_tagging":settings.geo_tagging,
-            "employee_checkin_break": bool(settings.employee_checkin_break),
+            "attendance_action": {
+                "offline_attendance": bool(settings.offline_attendance),
+                "offline_attendance_version": settings.offline_attendance_version,
+                "photo_upload": bool(settings.photo_upload),
+                "restrict_location": bool(settings.restrict_location),
+                "unrestricted_checkout_location": bool(settings.unrestricted_checkout_location),
+                "employee_shift": bool(settings.employee_shift),
+                "geo_tagging": settings.geo_tagging,
+                "employee_checkin_break": bool(settings.employee_checkin_break),
+                "attendance_request": bool(settings.attendance_request),
+                "attendance_history": bool(settings.attendance_history),
+            },
+            "loan_application": bool(settings.loan_application),
+            "leave_request": bool(settings.leave_request),
+            "employee_records": bool(settings.employee_records),
+            "complaints": bool(settings.complaints),
         }
         return Response(
             json.dumps(data),

@@ -7,15 +7,21 @@
  "field_order": [
   "company",
   "api_key",
-  "column_break_ojmn",
+  "expense_claim",
+  "complaints",
+  "employee_records",
+  "leave_request",
+  "loan_application",
+  "attendance_actions_column",
   "offline_attendance",
   "offline_attendance_version",
-  "photo_upload",
-  "offline_correction",
-  "restrict_location",
   "unrestricted_checkout_location",
+  "photo_upload",
+  "attendance_request",
+  "attendance_history",
   "employee_shift",
   "geo_tagging",
+  "restrict_location",
   "employee_checkin_break",
   "section_break_iwiu",
   "column_break_wwrs",
@@ -159,10 +165,6 @@
    "label": "Google Map Api Key"
   },
   {
-   "fieldname": "column_break_ojmn",
-   "fieldtype": "Column Break"
-  },
-  {
    "default": "0",
    "fieldname": "offline_attendance",
    "fieldtype": "Check",
@@ -178,12 +180,6 @@
    "fieldname": "photo_upload",
    "fieldtype": "Check",
    "label": "Photo Upload"
-  },
-  {
-   "default": "0",
-   "fieldname": "offline_correction",
-   "fieldtype": "Check",
-   "label": "Offline Correction"
   },
   {
    "default": "0",
@@ -214,13 +210,60 @@
    "fieldname": "employee_checkin_break",
    "fieldtype": "Check",
    "label": "Employee Checkin Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "loan_application",
+   "fieldtype": "Check",
+   "label": "Loan Application"
+  },
+  {
+   "default": "0",
+   "fieldname": "leave_request",
+   "fieldtype": "Check",
+   "label": "Leave Request"
+  },
+  {
+   "default": "0",
+   "fieldname": "expense_claim",
+   "fieldtype": "Check",
+   "label": "Expense Claim"
+  },
+  {
+   "default": "0",
+   "fieldname": "attendance_request",
+   "fieldtype": "Check",
+   "label": "Attendance Request"
+  },
+  {
+   "default": "0",
+   "fieldname": "attendance_history",
+   "fieldtype": "Check",
+   "label": "Attendance History"
+  },
+  {
+   "default": "0",
+   "fieldname": "employee_records",
+   "fieldtype": "Check",
+   "label": "Employee Records"
+  },
+  {
+   "default": "0",
+   "fieldname": "complaints",
+   "fieldtype": "Check",
+   "label": "Complaints"
+  },
+  {
+   "fieldname": "attendance_actions_column",
+   "fieldtype": "Column Break",
+   "label": "Attendance Actions"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-12 13:40:04.723306",
+ "modified": "2026-08-18 10:24:48.597148",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Checkin App Setting",

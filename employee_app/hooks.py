@@ -7,7 +7,7 @@ app_description = "Attendance and related submissions through mobile APP"
 app_email = "support@ERPGulf.com"
 app_license = "MIT"
 required_apps = ["hrms"]
-
+doctype_list_js = {"Employee": "public/js/employee_list.js"}
 fixtures = [
     {"dt": "Custom Field", "filters": {"module": "Employee app for ERPNext"}},
     {
