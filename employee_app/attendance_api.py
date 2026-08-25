@@ -1326,12 +1326,13 @@ def create_complaint(employee: str, date: str, message: str,complaint_type: str 
 def Employee_break(
     employee_field_value: str,
     timestamp: str,
-    location: str = None,
     device_id: str = None,
     log_type: str = None,
+    reason: str = None
 ):
     """Add Employee Break log entry"""
     try:
+
 
         if isinstance(timestamp, str):
             timestamp1 = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
@@ -1355,8 +1356,8 @@ def Employee_break(
             "time": timestamp,
             "device_id": device_id,
             "log_type": log_type,
-            "custom_employee_checkin_or_checkout_location": location,
             "employee_checkin": checkin_id,
+            "reason": reason
         })
 
         doc.insert(ignore_permissions=True)
