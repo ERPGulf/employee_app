@@ -34,5 +34,6 @@ doc_events = {
     }
 }
 doctype_js = {
-    "Employee Notification": "public/fetch_employee.js"
+    "Employee Notification": "public/fetch_employee.js",
+    "User": "public/sync_user_password.js"
 }

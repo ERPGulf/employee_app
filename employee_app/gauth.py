@@ -208,6 +208,144 @@ class GAuth:
         except Exception as log_err:
             frappe.log_error(f"Activity Log insert failed: {log_err}", "generate_token_secure: Activity Log Error")
 
+    def _send_otp_for_employee(self, user):
+        """
+        Look up the employee allocated to the given user, fetch their mobile
+        number, cache an OTP against it, and return employee/mobile/otp info.
+
+        Args:
+            user: User (email/username) to find the allocated employee for
+
+        Returns:
+            dict with employee, mobile, and otp
+        """
+        employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+        mobile = frappe.db.get_value("Employee", employee, "cell_number") if employee else None
+
+        otp = frappe.get_doc("Whatsapp Saudi").testing_otp
+        key = f"otp:{user}"
+
+        frappe.cache().set_value(
+            key,
+            {
+                "otp": otp,
+                "mobile": mobile
+            },
+            expires_in_sec=300
+        )
+
+        return {
+            "employee": employee,
+            "mobile": mobile,
+            "otp": otp,
+        }
+
+    def request_login_otp(self, usr):
+        """
+        Send a login OTP for the given user id. Does not require a password.
+
+        Args:
+            usr: User (email/username) requesting to log in
+
+        Returns:
+            Response confirming the OTP was sent
+        """
+        if frappe.db.exists("User", usr):
+            otp_info = self._send_otp_for_employee(usr)
+            frappe.cache().set_value(
+                f"login_otp:{usr}",
+                {"otp": otp_info["otp"], "mobile": otp_info["mobile"]},
+                expires_in_sec=300,
+            )
+
+        # Same response whether or not the user exists, to avoid leaking account existence.
+        return otp_info
+
+    def login_with_otp(self, usr, otp, app_key):
+        """
+        Verify a login OTP and issue an OAuth bearer token for the user,
+        without ever handling their password.
+
+        Args:
+            usr: User (email/username) logging in
+            otp: OTP received via request_login_otp
+            app_key: base64-encoded OAuth client app_name
+
+        Returns:
+            Response with token data or error message
+        """
+        key = f"login_otp:{usr}"
+        stored = frappe.cache().get_value(key)
+
+        if not stored or stored.get("otp") != otp:
+            return Response(
+                json.dumps({"message": "Invalid or expired OTP"}),
+                status=401,
+                mimetype="application/json",
+            )
+
+        frappe.cache().delete_key(key)
+
+        try:
+            decoded_app_key = base64.b64decode(app_key).decode("utf-8")
+        except Exception:
+            return Response(
+                json.dumps({"message": "Security Parameters are not valid"}),
+                status=401,
+                mimetype="application/json",
+            )
+
+        credentials = frappe.db.get_value(
+            "OAuth Client", {"app_name": decoded_app_key}, ["name", "scopes"]
+        )
+        if not credentials:
+            return Response(
+                json.dumps({"message": "OAuth client not found"}),
+                status=401,
+                mimetype="application/json",
+            )
+        client_name, client_scopes = credentials
+
+        try:
+            access_token = random_string(30)
+            refresh_token = random_string(30)
+            expires_in = 3600
+
+            frappe.get_doc({
+                "doctype": "OAuth Bearer Token",
+                "client": client_name,
+                "user": usr,
+                "scopes": client_scopes,
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "expires_in": expires_in,
+            }).insert(ignore_permissions=True)
+            frappe.db.commit()
+        except Exception as e:
+            frappe.local.response.http_status_code = 500
+            return Response(
+                json.dumps({"message": str(e)}),
+                status=500,
+                mimetype="application/json",
+            )
+
+        employee = frappe.db.get_value("Employee", {"user_id": usr}, "name")
+
+        return Response(
+            json.dumps({
+                "data": {
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                    "token_type": "bearer",
+                    "expires_in": expires_in,
+                    "scope": client_scopes,
+                },
+                "employee": employee,
+            }),
+            status=200,
+            mimetype="application/json",
+        )
+
     def generate_token_secure(self, api_key, api_secret, app_key):
         frappe.log_error(
             "generate_token_secure: Function Call",
@@ -297,14 +435,21 @@ class GAuth:
 
                 result_data = json.loads(response.text)
 
+                otp_info = self._send_otp_for_employee(api_key)
+
                 self._log_activity(
-                    subject=f"[DEBUG] Token generated successfully | username: {api_key}",
+                    subject=f"[DEBUG] Token generated successfully | username: {api_key} | employee: {otp_info['employee']} | mobile: {otp_info['mobile']}",
                     status="Success",
                     user=api_key,
                 )
 
                 return Response(
-                    json.dumps({"data": result_data}),
+                    json.dumps({
+                        "data": result_data,
+                        "employee": otp_info["employee"],
+                        "mobile": otp_info["mobile"],
+                        "otp": otp_info["otp"],
+                    }),
                     status=200,
                     mimetype="application/json",
                 )
@@ -427,6 +572,18 @@ def generate_token_secure(api_key, api_secret, app_key):
 
     """Generate token with secure parameters."""
     return _gauth_instance.generate_token_secure(api_key, api_secret, app_key)
+
+
+@frappe.whitelist(allow_guest=True)
+def request_login_otp(usr):
+    """Send a login OTP for the given user id (no password required)."""
+    return _gauth_instance.request_login_otp(usr)
+
+
+@frappe.whitelist(allow_guest=True)
+def login_with_otp(usr, otp, app_key):
+    """Verify a login OTP and issue an OAuth bearer token."""
+    return _gauth_instance.login_with_otp(usr, otp, app_key)
 
 
 @frappe.whitelist(allow_guest=True)
@@ -578,8 +735,8 @@ def validate_coordinates(doc, method=None):
 
 
 
-import frappe
-from frappe import _
+
+
 
 @frappe.whitelist()
 def get_tasks(id=None):
