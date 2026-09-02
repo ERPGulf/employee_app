@@ -15,7 +15,8 @@
   "device_id",
   "skip_auto_attendance",
   "attendance",
-  "employee_checkin"
+  "employee_checkin",
+  "reason"
  ],
  "fields": [
   {
@@ -87,14 +88,19 @@
    "fieldtype": "Link",
    "label": "Employee Checkin",
    "options": "Employee Checkin"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason"
   }
  ],
  "links": [],
- "modified": "2026-04-10 08:48:58.812468",
+ "modified": "2026-08-24 14:51:31.948829",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Employee Break",
- "naming_rule": "Expression (old style)",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

@@ -1329,9 +1329,11 @@ def Employee_break(
     location: str = None,
     device_id: str = None,
     log_type: str = None,
+    reason: str = None
 ):
     """Add Employee Break log entry"""
     try:
+
 
         if isinstance(timestamp, str):
             timestamp1 = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
@@ -1357,6 +1359,7 @@ def Employee_break(
             "log_type": log_type,
             "custom_employee_checkin_or_checkout_location": location,
             "employee_checkin": checkin_id,
+            "reason": reason
         })
 
         doc.insert(ignore_permissions=True)
