@@ -435,10 +435,8 @@ class GAuth:
 
                 result_data = json.loads(response.text)
 
-                otp_info = self._send_otp_for_employee(api_key)
-
                 self._log_activity(
-                    subject=f"[DEBUG] Token generated successfully | username: {api_key} | employee: {otp_info['employee']} | mobile: {otp_info['mobile']}",
+                    subject=f"[DEBUG] Token generated successfully | username: {api_key}",
                     status="Success",
                     user=api_key,
                 )
@@ -446,9 +444,6 @@ class GAuth:
                 return Response(
                     json.dumps({
                         "data": result_data,
-                        "employee": otp_info["employee"],
-                        "mobile": otp_info["mobile"],
-                        "otp": otp_info["otp"],
                     }),
                     status=200,
                     mimetype="application/json",
