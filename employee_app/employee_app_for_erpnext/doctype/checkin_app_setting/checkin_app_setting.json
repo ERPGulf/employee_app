@@ -23,6 +23,7 @@
   "geo_tagging",
   "restrict_location",
   "employee_checkin_break",
+  "auto_attendance",
   "section_break_iwiu",
   "column_break_wwrs",
   "shortcut_1",
@@ -257,13 +258,19 @@
    "fieldname": "attendance_actions_column",
    "fieldtype": "Column Break",
    "label": "Attendance Actions"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_attendance",
+   "fieldtype": "Check",
+   "label": "Auto Attendance"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-18 10:24:48.597148",
+ "modified": "2026-09-01 14:20:18.362837",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Checkin App Setting",

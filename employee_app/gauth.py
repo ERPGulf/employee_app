@@ -1108,6 +1108,13 @@ def create_new_password(new_password):
             mimetype="application/json"
         )
 
+GEO_TAGGING_OPTIONS = {
+    "Disable geotagging": 0,
+    "Enable geotagging for warnings only": 1,
+    "Enable geotagging for all attendance actions": 2,
+}
+
+
 @frappe.whitelist()
 def employee_checkin_setting():
     try:

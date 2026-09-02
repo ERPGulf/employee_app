@@ -306,6 +306,7 @@ def add_log_based_on_employee_field(
     log_type: str = None,
     over_time: int = None,
     file: str = None,
+    auto: bool = False
 ):
     """Add Employee Checkin log entry"""
     try:
@@ -356,7 +357,9 @@ def add_log_based_on_employee_field(
             "log_type": log_type,
             "custom_employee_chekin_location": checkin_location,
             "custom_employee_chekin_or_checkout_location": unrestricted_checkin_location,
-            "custom_over_time": over_time
+            "custom_over_time": over_time,
+            "custom_auto": auto
+
 
         })
 
@@ -553,13 +556,15 @@ def get_attendance_details(employee_id: str = None, limit_start: int = 0, limit_
             "Employee Checkin",
             fields=[
                 "name", "employee_name", "log_type",
-                "time", "device_id", "employee", "skip_auto_attendance", "creation",
+                "time", "device_id", "employee", "skip_auto_attendance", "creation","custom_auto as auto"
             ],
             filters={"employee": ["like", f"%{employee_id}%"]},
             order_by="creation desc",
             limit_start=limit_start,
             limit_page_length=limit_page_length,
         )
+        for row in doc:
+            row["auto"] = bool(row.get("auto"))
         return doc
 
     except Exception as e:
