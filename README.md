@@ -1,4 +1,15 @@
+
+---
+**Lead Technical Consultant:** Fadi Al-Qassas
+**Focus:** Secure API Gateway Architecture & Automated WhatsApp Business Integration
+---
+
 ## Employee app for ERPNext
+
+### 💡 Lead Technical Contributions
+* **Mobile API & Auth:** Architected secure OAuth2 flows for mobile-backend communication.
+* **Geofencing:** Engineered custom location validation frameworks for attendance tracking.
+* **Automation:** Developed event-driven hooks for shift-aware attendance and inventory reconciliation.
 
 Attendance and related submissions through mobile APP.
 
