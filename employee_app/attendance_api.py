@@ -1822,6 +1822,7 @@ def create_loan_application(employee: str, product_name: str, amount: float, rea
         )
 
 
+
 def get_complaint_types():
     """Fetch all complaint types from Employee Complaint Type DocType."""
     try:
