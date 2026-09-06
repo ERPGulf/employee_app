@@ -306,14 +306,15 @@ def add_log_based_on_employee_field(
     log_type: str = None,
     over_time: int = None,
     file: str = None,
-    auto: bool = False
+    auto: bool = False,
+    offline_checkin: bool = False,
 ):
     """Add Employee Checkin log entry"""
     try:
         if log_type:
             log_type = get_log_type(employee_field_value, timestamp, log_type)
 
-        if log_type in ("OUT", "Early Exit"):
+        if log_type in ("OUT", "Early Exit") and not offline_checkin:
             last_checkin_time = frappe.db.get_value(
                 "Employee Checkin",
                 {"employee": employee_field_value, "log_type": "IN"},
@@ -321,7 +322,11 @@ def add_log_based_on_employee_field(
                 order_by="time desc",
             )
             if last_checkin_time and get_datetime(timestamp) < get_datetime(last_checkin_time):
-                return {"error": "Checkout time cannot be before the last check-in time"}
+                return Response(
+                        json.dumps({"error": "Checkout time cannot be before the last check-in time"}),
+                        status=400,
+                        mimetype="application/json",
+                    )
 
         checkin_location = None
         unrestricted_checkin_location = None
@@ -358,7 +363,8 @@ def add_log_based_on_employee_field(
             "custom_employee_chekin_location": checkin_location,
             "custom_employee_chekin_or_checkout_location": unrestricted_checkin_location,
             "custom_over_time": over_time,
-            "custom_auto": auto
+            "custom_auto": auto,
+            "custom_offline_checkin": offline_checkin
 
 
         })
@@ -1856,6 +1862,7 @@ def add_offline_employee_checkins(logs):
                     device_id=row.get("device_id"),
                     log_type=row.get("log_type"),
                     over_time=row.get("over_time"),
+                    offline_checkin=True  # Ensure offline_checkin is set to True for offline logs
                 )
 
                 if isinstance(result, dict) and result.get("error"):
