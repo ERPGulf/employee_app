@@ -130,27 +130,32 @@ def sign_in(mobile_no=None, password=None):
 # ════════════════════════════════════════════════════════════════════════════════
 
 @frappe.whitelist(allow_guest=True)
-def verify_sign_in_otp(mobile_no=None, otp=None):
+def verify_sign_in_otp(mobile_no=None, otp=None, password=None):
     """
     Completes sign-in after sign_in() sent an OTP (custom_otp_policy was
-    Mandatory or Optional). Only checks the OTP — password was already
-    checked in sign_in() and is NOT re-checked or overwritten here.
-
-    On success, issues the access + refresh token via the same OAuth-Client
-    derived app_key structure used by sign_in()'s otp_policy == "No" path.
+    Mandatory or Optional).
 
     Params:
         mobile_no : same phone number passed to sign_in().
-        otp       : the OTP code entered by the user. Always required here —
-                    this endpoint is only reached when sign_in() already
-                    decided an OTP was necessary and sent one.
+        otp       : the OTP code entered by the user. Optional — see below.
+        password  : optional. When supplied, it is (re-)verified here against
+                    the Employee's linked User login password via
+                    _verify_password, same as sign_in()'s own password check.
+
+    At least one of otp / password must be supplied:
+        - password only (no otp): password is verified, OTP is not checked
+          at all, token is issued.
+        - password and otp: both are verified, token is issued only if both
+          pass.
+        - otp only (no password): OTP is verified as before, password is not
+          re-checked here (it was already checked in sign_in(), if at all).
     """
     try:
-        if not mobile_no or not otp:
+        if not mobile_no or (not otp and not password):
             return Response(
                 json.dumps({
                     "status":  "error",
-                    "message": "mobile_no and otp are required",
+                    "message": "mobile_no and (otp or password) are required",
                 }),
                 status=400, mimetype="application/json",
             )
@@ -166,27 +171,40 @@ def verify_sign_in_otp(mobile_no=None, otp=None):
                 status=401, mimetype="application/json",
             )
 
-        employee_id     = employee["name"]
-        employee_mobile = employee["cell_number"]
-        password_policy = employee.get("custom_password_policy") or "No"
-        otp_policy      = employee.get("custom_otp_policy") or "No"
+        employee_id       = employee["name"]
+        employee_mobile   = employee["cell_number"]
+        employee_user_id  = employee.get("user_id")
+        password_policy   = employee.get("custom_password_policy") or "No"
+        otp_policy        = employee.get("custom_otp_policy") or "No"
 
-        # ── Verify OTP against cache (set by sign_in / _send_sign_in_otp) ───
-        key        = f"otp:{employee_mobile}"
-        cached_otp = frappe.cache().get_value(key)
+        # ── Verify password, if supplied ─────────────────────────────────────
+        if password:
+            if not employee_user_id or not _verify_password(employee_user_id, password):
+                return Response(
+                    json.dumps({
+                        "status":  "error",
+                        "message": "Invalid password",
+                    }),
+                    status=401, mimetype="application/json",
+                )
 
-        if not cached_otp or str(cached_otp) != str(otp):
-            return Response(
-                json.dumps({
-                    "status":  "error",
-                    "message": "Invalid or expired OTP",
-                }),
-                status=401, mimetype="application/json",
-            )
+        # ── Verify OTP, if supplied ───────────────────────────────────────────
+        if otp:
+            key        = f"otp:{employee_mobile}"
+            cached_otp = frappe.cache().get_value(key)
 
-        frappe.cache().delete_value(key)
+            if not cached_otp or str(cached_otp) != str(otp):
+                return Response(
+                    json.dumps({
+                        "status":  "error",
+                        "message": "Invalid or expired OTP",
+                    }),
+                    status=401, mimetype="application/json",
+                )
 
-        # ── OTP verified — issue access + refresh token ─────────────────────
+            frappe.cache().delete_value(key)
+
+        # ── Verified — issue access + refresh token ──────────────────────────
         return _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy, otp_policy)
 
     except Exception as e:

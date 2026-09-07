@@ -25,6 +25,7 @@ def generate_and_send_otp(mobile_no=None):
 
         # ── STEP 1: Look up the Employee whose mobile_no matches the payload ──
         employee = _find_employee_by_mobile(mobile_no)
+        password_field=frappe.db.get_value("Employee", employee.name, "custom_employee_password") if employee else None
 
         if not employee:
             return Response(
@@ -45,7 +46,12 @@ def generate_and_send_otp(mobile_no=None):
         is_testing  = wa_config.get("testing")        # testing checkbox
 
         # ── STEP 2: Generate OTP ────────────────────────────────────────────────
-        otp = str(random.randint(100000, 999999))
+        # When testing is enabled, use the fixed testing_otp value instead of
+        # generating a random one, so testers/automation can rely on a known code.
+        if is_testing:
+            otp = wa_config.get("testing_otp")
+        else:
+            otp = str(random.randint(100000, 999999))
 
         # ── STEP 3: Cache OTP against mobile number (expires in 5 min) ────────
         otp_expires_in_sec = 300
@@ -67,21 +73,34 @@ def generate_and_send_otp(mobile_no=None):
                         "password_policy": password_policy,
                         "otp_policy":      otp_policy,
                     },
+                    "employee_has_existing_password": bool(password_field),
                     "otp_expires_in": otp_expires_in_sec,
                 }),
                 status=200, mimetype="application/json",
             )
 
         # ── STEP 5: Live mode — send via WhatsApp, never expose OTP ──────────
-        send_result = _send_otp_whatsapp(employee_mobile, otp)
+        result = frappe.call(
+            "whatsapp_saudi.overrides.whtatsapp_notification.send_otp",
+            phone=_clean_phone_number(employee_mobile),
+            otp_code=otp,
+        )
 
 
-        if not send_result.get("success"):
+
+        # send_otp() (whatsapp_saudi) returns different shapes depending on
+        # the configured provider — success is either {"success": True, ...}
+        # or {"status": "success", ...}; both are treated as success here.
+        is_delivered = isinstance(result, dict) and (
+            result.get("success") is True or result.get("status") == "success"
+        )
+
+        if not is_delivered:
             return Response(
                 json.dumps({
                     "status":  "error",
                     "message": "OTP generated but WhatsApp delivery failed",
-                    "detail":  send_result.get("error"),
+                    "detail":  result.get("error") if isinstance(result, dict) else None,
                 }),
                 status=500, mimetype="application/json",
             )
@@ -228,7 +247,7 @@ def verify_otp(mobile_no=None, otp=None, password=None):
         employee_id     = employee["name"]
         employee_cell_number = employee["cell_number"]
         password_policy = employee.get("custom_password_policy") or "No"
-        stored_password = employee.get("custom_password")
+        stored_password = employee.get("custom_employee_password")
 
         # ── STEP 2: OTP check — always required, custom_otp_policy is not
         # consulted here (that policy only governs whether generate_and_send_otp
@@ -245,7 +264,6 @@ def verify_otp(mobile_no=None, otp=None, password=None):
 
         key        = f"otp:{employee_cell_number}"
         cached_otp = frappe.cache().get_value(key)
-
         if not cached_otp or str(cached_otp) != str(otp):
             return Response(
                 json.dumps({
@@ -276,7 +294,8 @@ def verify_otp(mobile_no=None, otp=None, password=None):
             _write_custom_password(employee_id, password)
             stored_password = password
 
-        elif password_policy == "Optional":
+        elif password_policy == "Optional" or password_policy == "No":
+
             # Only save if the caller actually supplied one.
             if password:
                 set_employee_password(employee_id, password)
@@ -341,6 +360,7 @@ def verify_otp(mobile_no=None, otp=None, password=None):
 
         # ── STEP 5: Issue the OAuth2 token via the shared helper ────────────
         error_response, token_json = issue_oauth_tokens_for_app(app_key, employee_id)
+
         if error_response:
             return error_response
 
@@ -397,7 +417,7 @@ def _write_custom_password(employee_id, password):
     frappe.db.sql(
         """
         update `tabEmployee`
-        set custom_password = %s
+        set custom_employee_password = %s
         where name = %s
         """,
         (password, employee_id),
@@ -415,7 +435,7 @@ def sync_user_password_to_employee(user, password):
     Called from public/sync_user_password.js on the User doctype whenever
     someone fills in "Set New Password" and saves. Looks up the Employee
     whose user_id matches this User and writes the password into
-    custom_password via _write_custom_password, so it lands as the same
+    custom_employee_password via _write_custom_password, so it lands as the same
     literal, unhashed value that authentication.py itself reads back later.
     """
 
@@ -663,7 +683,8 @@ def issue_oauth_tokens_for_app(app_key, employee_id):
         # tabEmployee column (see _write_custom_password) — it never goes
         # through __Auth, so it must be read back the same way rather than
         # via get_decrypted_password (which only looks in __Auth).
-        password = frappe.db.get_value("Employee", employee_doc.name, "custom_password")
+        password = frappe.db.get_value("Employee", employee_doc.name, "custom_employee_password")
+
     except Exception as e:
         return Response(
             json.dumps({
