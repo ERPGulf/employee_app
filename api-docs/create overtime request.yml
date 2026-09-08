@@ -1,0 +1,35 @@
+info:
+  name: create overtime request
+  type: http
+  seq: 33
+
+http:
+  method: POST
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.gauth.create_overtime_request
+  body:
+    type: multipart-form
+    data:
+      - name: employee
+        type: text
+        value: HR-EMP-00001
+      - name: date
+        type: text
+        value: 2026-06-01
+      - name: from_time
+        type: text
+        value: 10:56:18
+      - name: to_time
+        type: text
+        value: 10:56:18
+      - name: reason
+        type: text
+        value: test
+  auth:
+    type: bearer
+    token: XCLCWezNI419fp8iHnl0TWMJORC1Ai
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

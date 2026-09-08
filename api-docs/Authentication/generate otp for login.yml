@@ -1,0 +1,83 @@
+info:
+  name: generate otp for login
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.authentication.otp_generate_for_sign_in
+  body:
+    type: form-urlencoded
+    data:
+      - name: mobile_no
+        value: "654761"
+  auth:
+    type: bearer
+    token: LlJqD49F1upqq2r01Xl9YBFM4FXuin
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |2-
+   # Generate OTP for Login
+
+      Generates a one-time password (OTP) for the employee matched by mobile
+      number and sends it via WhatsApp. This is the first step of OTP-based
+      sign-up/login, before calling `sign up` or `sign in otp generation`.
+
+      ## Authentication
+      Requires a valid Bearer token.
+
+      ## Parameters
+
+      | Name      | Type   | Required | Description                                                        |
+      |-----------|--------|----------|---------------------------------------------------------------------|
+      | mobile_no | string | Yes      | Employee's mobile number|
+
+      ## Response
+
+      Success (testing mode — OTP returned directly):
+      ```json
+      {
+        "status": "success",
+        "message": "OTP sent successfully",
+        "employee_id": "HR-EMP-00003",
+        "policy": {
+          "password_policy": "Mandatory",
+          "otp_policy": "Mandatory"
+        },
+        "employee_has_existing_password": false,
+        "otp_expires_in": 300
+      }
+      ```
+
+      Success (live mode — OTP sent via WhatsApp, not returned):
+      ```json
+      {
+        "status": "success",
+        "message": "OTP sent successfully",
+        "employee_id": "HR-EMP-00003",
+        "policy": {
+          "password_policy": "Mandatory",
+          "otp_policy": "Mandatory"
+        },
+        "otp_expires_in": 300
+      }
+      ```
+
+      Error — no matching employee:
+      ```json
+      {
+        "status": "error",
+        "message": "No employee found for the given phone number"
+      }
+      ```
+
+      ## Notes
+      - The OTP is cached against the employee's mobile number for 5 minutes (`otp_expires_in`: 300).
+      - When `Whatsapp Saudi.testing` is enabled, the fixed `testing_otp` value is used instead of a random OTP and is returned directly in the response instead of being sent via WhatsApp.
+      - `employee_has_existing_password` (testing mode only) indicates whether the employee has already set their own password via `sign up`.
+      - Use the returned `policy.otp_policy` / `policy.password_policy` to decide whether `sign up` or `sign in api` needs an OTP and/or password next.

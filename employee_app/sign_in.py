@@ -6,7 +6,7 @@ import re
 import frappe
 import requests
 from frappe.utils import now_datetime
-from frappe.utils.password import check_password
+from frappe.utils.password import check_password, update_password
 from werkzeug.wrappers import Response
 
 from employee_app.authentication import issue_oauth_tokens_for_app
@@ -21,7 +21,7 @@ from employee_app.authentication import issue_oauth_tokens_for_app
 # ════════════════════════════════════════════════════════════════════════════════
 
 @frappe.whitelist(allow_guest=True)
-def sign_in(mobile_no=None, password=None):
+def otp_generate_for_sign_in(mobile_no=None, password=None):
     """
     Sign in an existing employee, looked up by phone number.
 
@@ -129,8 +129,8 @@ def sign_in(mobile_no=None, password=None):
 # PUBLIC — Step 2 of sign-in when custom_otp_policy is Mandatory/Optional
 # ════════════════════════════════════════════════════════════════════════════════
 
-@frappe.whitelist(allow_guest=True)
-def verify_sign_in_otp(mobile_no=None, otp=None, password=None):
+@frappe.whitelist()
+def sign_in_api(mobile_no=None, otp=None, password=None):
     """
     Completes sign-in after sign_in() sent an OTP (custom_otp_policy was
     Mandatory or Optional).
@@ -138,8 +138,12 @@ def verify_sign_in_otp(mobile_no=None, otp=None, password=None):
     Params:
         mobile_no : same phone number passed to sign_in().
         otp       : the OTP code entered by the user. Optional — see below.
-        password  : optional. When supplied, it is (re-)verified here against
-                    the Employee's linked User login password via
+                    When supplied, it's checked-and-cleared against what
+                    sign_in() cached (mirrors verify_otp() in
+                    authentication.py), so a consumed OTP can never be
+                    replayed on a later call.
+        password  : optional. When supplied, it is (re-)verified/updated here
+                    against the Employee's linked User login password via
                     _verify_password, same as sign_in()'s own password check.
 
     At least one of otp / password must be supplied:
@@ -177,18 +181,9 @@ def verify_sign_in_otp(mobile_no=None, otp=None, password=None):
         password_policy   = employee.get("custom_password_policy") or "No"
         otp_policy        = employee.get("custom_otp_policy") or "No"
 
-        # ── Verify password, if supplied ─────────────────────────────────────
-        if password:
-            if not employee_user_id or not _verify_password(employee_user_id, password):
-                return Response(
-                    json.dumps({
-                        "status":  "error",
-                        "message": "Invalid password",
-                    }),
-                    status=401, mimetype="application/json",
-                )
-
-        # ── Verify OTP, if supplied ───────────────────────────────────────────
+        # ── Verify OTP, if supplied — checked-and-cleared, same as
+        # verify_otp() in authentication.py, so it can never be replayed
+        # once consumed. ─────────────────────────────────────────────────────
         if otp:
             key        = f"otp:{employee_mobile}"
             cached_otp = frappe.cache().get_value(key)
@@ -203,6 +198,37 @@ def verify_sign_in_otp(mobile_no=None, otp=None, password=None):
                 )
 
             frappe.cache().delete_value(key)
+
+        # ── Verify password, if supplied ─────────────────────────────────────
+        # custom_user_created_password tells us whether the employee has
+        # already chosen their own password (set via verify_otp): if so, the
+        # incoming password must match it; if not, there's no real password
+        # to check against yet, so whatever is passed here becomes the
+        # employee's login password.
+        if password:
+            user_created_password = frappe.db.get_value(
+                "Employee", employee_id, "custom_user_created_password"
+            )
+
+            if user_created_password:
+                if not employee_user_id or not _verify_password(employee_user_id, password):
+                    return Response(
+                        json.dumps({
+                            "status":  "error",
+                            "message": "Invalid password",
+                        }),
+                        status=401, mimetype="application/json",
+                    )
+            else:
+                if not employee_user_id:
+                    return Response(
+                        json.dumps({
+                            "status":  "error",
+                            "message": "No user account linked to this employee",
+                        }),
+                        status=404, mimetype="application/json",
+                    )
+                update_password(employee_user_id, password)
 
         # ── Verified — issue access + refresh token ──────────────────────────
         return _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy, otp_policy)

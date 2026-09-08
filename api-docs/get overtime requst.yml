@@ -1,0 +1,22 @@
+info:
+  name: get overtime requst
+  type: http
+  seq: 34
+
+http:
+  method: GET
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.gauth.get_employee_overtime_requests
+  body:
+    type: form-urlencoded
+    data:
+      - name: employee
+        value: HR-EMP-00001
+  auth:
+    type: bearer
+    token: I62X1tLbuG1WjdbcHMZFaa7twzRFpm
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

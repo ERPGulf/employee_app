@@ -24,6 +24,10 @@
   "restrict_location",
   "employee_checkin_break",
   "auto_attendance",
+  "authentication_section",
+  "user",
+  "password",
+  "app_key",
   "section_break_iwiu",
   "column_break_wwrs",
   "shortcut_1",
@@ -265,13 +269,34 @@
    "fieldname": "auto_attendance",
    "fieldtype": "Check",
    "label": "Auto Checkin"
+  },
+  {
+   "fieldname": "authentication_section",
+   "fieldtype": "Section Break",
+   "label": "Authentication"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Data",
+   "label": "Password"
+  },
+  {
+   "fieldname": "app_key",
+   "fieldtype": "Data",
+   "label": "App Key"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-06 17:59:23.910060",
+ "modified": "2026-09-08 08:20:01.269069",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Checkin App Setting",

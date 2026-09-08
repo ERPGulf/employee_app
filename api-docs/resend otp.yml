@@ -1,0 +1,26 @@
+info:
+  name: resend otp
+  type: http
+  seq: 40
+
+http:
+  method: POST
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.gauth.resend_otp
+  body:
+    type: form-urlencoded
+    data:
+      - name: mobile_no
+        value: "897653"
+        disabled: true
+      - name: otp
+        value: "661933"
+        disabled: true
+  auth:
+    type: bearer
+    token: SUFlkySPAR07bu0fq6x3Svl6nv2N43
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

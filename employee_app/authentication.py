@@ -14,7 +14,7 @@ from werkzeug.wrappers import Response
 # PUBLIC — Generate & send OTP, matched by phone number
 # ════════════════════════════════════════════════════════════════════════════════
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def generate_and_send_otp(mobile_no=None):
     try:
         if not mobile_no:
@@ -25,7 +25,7 @@ def generate_and_send_otp(mobile_no=None):
 
         # ── STEP 1: Look up the Employee whose mobile_no matches the payload ──
         employee = _find_employee_by_mobile(mobile_no)
-        password_field=frappe.db.get_value("Employee", employee.name, "custom_employee_password") if employee else None
+        user_created_password = frappe.db.get_value("Employee", employee.name, "custom_user_created_password") if employee else None
 
         if not employee:
             return Response(
@@ -40,6 +40,7 @@ def generate_and_send_otp(mobile_no=None):
         employee_mobile = employee["cell_number"]
         password_policy = employee.get("custom_password_policy") or "No"
         otp_policy      = employee.get("custom_otp_policy") or "No"
+
 
         # ── Fetch WhatsApp Saudi config ────────────────────────────────────────
         wa_config   = frappe.get_doc("Whatsapp Saudi")
@@ -73,7 +74,7 @@ def generate_and_send_otp(mobile_no=None):
                         "password_policy": password_policy,
                         "otp_policy":      otp_policy,
                     },
-                    "employee_has_existing_password": bool(password_field),
+                    "employee_has_existing_password": bool(user_created_password),
                     "otp_expires_in": otp_expires_in_sec,
                 }),
                 status=200, mimetype="application/json",
@@ -189,8 +190,8 @@ def _clean_phone_number(number):
     return phone
 
 
-@frappe.whitelist(allow_guest=True)
-def verify_otp(mobile_no=None, otp=None, password=None):
+@frappe.whitelist()
+def sign_up_api(mobile_no=None, otp=None, password=None):
     """
     Verify the OTP sent via generate_and_send_otp, optionally check the
     customer's password (driven by custom_password_policy), and — on
@@ -247,12 +248,14 @@ def verify_otp(mobile_no=None, otp=None, password=None):
         employee_id     = employee["name"]
         employee_cell_number = employee["cell_number"]
         password_policy = employee.get("custom_password_policy") or "No"
+        otp_policy      = employee.get("custom_otp_policy")
         stored_password = employee.get("custom_employee_password")
 
-        # ── STEP 2: OTP check — always required, custom_otp_policy is not
-        # consulted here (that policy only governs whether generate_and_send_otp
-        # actually sends one; verification here is unconditional).
-        if not otp:
+        # ── STEP 2: OTP check — driven by custom_otp_policy.
+        # "Mandatory": otp required; missing otp = rejected.
+        # "No" (or unset): otp not required — if omitted, skipped entirely;
+        # if supplied anyway, still verified against the cache.
+        if otp_policy == "Mandatory" and not otp:
             return Response(
                 json.dumps({
                     "status":  "error",
@@ -262,18 +265,20 @@ def verify_otp(mobile_no=None, otp=None, password=None):
                 status=400, mimetype="application/json",
             )
 
-        key        = f"otp:{employee_cell_number}"
-        cached_otp = frappe.cache().get_value(key)
-        if not cached_otp or str(cached_otp) != str(otp):
-            return Response(
-                json.dumps({
-                    "status":  "error",
-                    "message": "Invalid or expired OTP",
-                    "user_count": 0,
-                }),
-                status=401, mimetype="application/json",
-            )
-        frappe.cache().delete_value(key)
+        if otp:
+            key        = f"otp:{employee_cell_number}"
+            cached_otp = frappe.cache().get_value(key)
+
+            if not cached_otp or str(cached_otp) != str(otp):
+                return Response(
+                    json.dumps({
+                        "status":  "error",
+                        "message": "Invalid or expired OTP",
+                        "user_count": 0,
+                    }),
+                    status=401, mimetype="application/json",
+                )
+            frappe.cache().delete_value(key)
 
         # ── STEP 3: Password handling, driven by custom_password_policy ─────
         # Not compared against the existing stored value — whatever is sent
@@ -292,6 +297,7 @@ def verify_otp(mobile_no=None, otp=None, password=None):
                 )
             set_employee_password(employee_id, password)
             _write_custom_password(employee_id, password)
+            _update_user_created_password_flag(employee_id, password)
             stored_password = password
 
         elif password_policy == "Optional" or password_policy == "No":
@@ -300,6 +306,7 @@ def verify_otp(mobile_no=None, otp=None, password=None):
             if password:
                 set_employee_password(employee_id, password)
                 _write_custom_password(employee_id, password)
+                _update_user_created_password_flag(employee_id, password)
                 stored_password = password
 
         # password_policy == "No" (or anything else) → password ignored entirely,
@@ -423,6 +430,25 @@ def _write_custom_password(employee_id, password):
         (password, employee_id),
     )
     frappe.db.commit()
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# INTERNAL — Flag whether the password was actually chosen by the employee
+# ════════════════════════════════════════════════════════════════════════════════
+
+def _update_user_created_password_flag(employee_id, password):
+    """
+    The frontend auto-generates a placeholder password (e.g. "user_934") and
+    sends it along whenever the employee hasn't actually set one — a real
+    password an employee chooses (e.g. "Aysha@123") won't follow that
+    "user..." pattern. So custom_user_created_password is turned on only when
+    the incoming password does NOT start with "user", i.e. it looks like a
+    genuine, employee-chosen password rather than the frontend's placeholder.
+    """
+    looks_auto_generated = str(password).lower().startswith("egf")
+    frappe.db.set_value(
+        "Employee", employee_id, "custom_user_created_password", 0 if looks_auto_generated else 1
+    )
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -800,4 +826,93 @@ def issue_oauth_tokens_for_app(app_key, employee_id):
         mimetype="application/json",
     ), None
 
+@frappe.whitelist(allow_guest=True)
+def master_token():
+        try:
+            try:
+                doc=frappe.get_doc("Checkin App Setting")
+                api_key = doc.user
+                api_secret = doc.password
+                key=doc.app_key
 
+
+                app_key = base64.b64decode(key).decode("utf-8")
+
+            except Exception as e:
+
+                return Response(
+                    json.dumps(
+                        {"message": "Security Parameters are not valid", "user_count": 0}
+                    ),
+                    status=401,
+                    mimetype="application/json",
+                )
+
+            clientID, clientSecret, clientUser = frappe.db.get_value(
+                "OAuth Client",
+                {"app_name": app_key},
+                ["client_id", "client_secret", "user"],
+            )
+
+            doc = frappe.db.get_value(
+                "OAuth Client",
+                {"app_name": app_key},
+                ["name", "client_id", "client_secret", "user"],
+            )
+
+            if clientID is None:
+
+                return Response(
+                    json.dumps(
+                        {"message": "Security Parameters are not valid", "user_count": 0}
+                    ),
+                    status=401,
+                    mimetype="application/json",
+                )
+
+            client_id = clientID
+            client_secret = clientSecret
+
+            url = (
+                frappe.local.conf.host_name
+                + "/api/method/frappe.integrations.oauth2.get_token"
+            )
+
+
+            payload = {
+                "username": api_key,
+                "password": api_secret,
+                "grant_type": "password",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            }
+            files = []
+            headers = {"Content-Type": "application/json"}
+
+            response = requests.request("POST", url, data=payload, files=files)
+
+            if response.status_code == 200:
+
+                result_data = json.loads(response.text)
+
+
+
+                return Response(
+                    json.dumps({
+                        "data": result_data,
+                    }),
+                    status=200,
+                    mimetype="application/json",
+                )
+
+            else:
+
+                frappe.local.response.http_status_code = 401
+                return json.loads(response.text)
+
+        except Exception as e:
+            return Response(
+                json.dumps({"message": str(e), "user_count": 0}),
+                status=500,
+                mimetype="application/json",
+            )

@@ -7,16 +7,30 @@ http:
   method: POST
   url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.create_leave_application
   body:
-    type: form-urlencoded
+    type: multipart-form
     data:
       - name: employee
+        type: text
         value: HR-EMP-00003
       - name: leave_type
-        value: Leave Without Pay
+        type: text
+        value: HR-EMP-00003
       - name: from_date
-        value: 2026-06-01
+        type: text
+        value: 2026-06-17
       - name: to_date
-        value: 2026-06-01
+        type: text
+        value: "2026-06-17 "
+      - name: file
+        type: file
+        value:
+          - C:\Users\HP\OneDrive\Pictures\Screenshots\Screenshot 2026-06-11 124140.png
+      - name: reason
+        type: text
+        value: test
+      - name: posting_date
+        type: text
+        value: 2026-06-17 12:46:00
   auth:
     type: bearer
     token: "{token}"

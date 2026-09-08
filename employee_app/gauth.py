@@ -569,6 +569,9 @@ def generate_token_secure(api_key, api_secret, app_key):
     return _gauth_instance.generate_token_secure(api_key, api_secret, app_key)
 
 
+
+
+
 @frappe.whitelist(allow_guest=True)
 def request_login_otp(usr):
     """Send a login OTP for the given user id (no password required)."""

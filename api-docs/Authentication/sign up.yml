@@ -1,0 +1,93 @@
+info:
+  name: sign up
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.authentication.sign_up_api
+  body:
+    type: form-urlencoded
+    data:
+      - name: mobile_no
+        value: "654761"
+      - name: otp
+        value: "123456"
+      - name: password
+        value: user_87756
+        description: optional
+  auth:
+    type: bearer
+    token: LlJqD49F1upqq2r01Xl9YBFM4FXuin
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Sign Up
+
+      Verifies the OTP sent by `generate otp for login`, optionally sets the
+      employee's password, and — on success — issues an OAuth2 access +
+      refresh token. Used for first-time employee onboarding / login.
+
+      ## Authentication
+      Requires a valid Bearer token.
+
+      ## Parameters
+
+      | Name      | Type   | Required    | Description                                                                                              |
+      |-----------|--------|-------------|-----------------------------------------------------------------------------------------------------------|
+      | mobile_no | string | Yes         | Employee's mobile number (same matching logic as `generate otp for login`)                                |
+      | otp       | string | Yes         | OTP entered by the user, verified against what `generate otp for login` cached, and cleared once consumed |
+      | password  | string | Conditional | New login password. Required when `custom_password_policy` is `Mandatory`; optional when `Optional`; ignored when `No` |
+
+      ## Response
+
+      Success:
+      ```json
+      {
+        "status": "success",
+        "data": {
+          "token": {
+            "access_token": "...",
+            "refresh_token": "...",
+            "token_type": "bearer",
+            "expires_in": 3600,
+            "scope": "..."
+          },
+          "employee": {
+            "id": "HR-EMP-00003",
+            "employee_name": "John Doe",
+            "phone": "5xxxxxxxx",
+            "email": "john.doe@example.com"
+          },
+          "time": "2026-06-17 12:46:00"
+        }
+      }
+      ```
+
+      Error — invalid/expired OTP:
+      ```json
+      {
+        "status": "error",
+        "message": "Invalid or expired OTP",
+        "user_count": 0
+      }
+      ```
+
+      Error — no matching employee:
+      ```json
+      {
+        "status": "error",
+        "message": "Invalid Employee ID or Password",
+        "user_count": 0
+      }
+      ```
+
+      ## Notes
+      - `password` is stored exactly as received — no hashing — into `custom_employee_password`, and is also set as the employee's normal (hashed) User login password.
+      - `custom_user_created_password` is set to `1` unless the password looks like an auto-generated placeholder (starts with `"egf"`), so the app can distinguish an employee-chosen password from a system default.
+      - `app_key` is not accepted as a parameter — it's derived internally from the site's `OAuth Client`.

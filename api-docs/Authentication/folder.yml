@@ -1,0 +1,7 @@
+info:
+  name: Authentication
+  type: folder
+  seq: 43
+
+request:
+  auth: inherit
