@@ -8,7 +8,7 @@ http:
   url: https://malavika16.erpgulf.com:3045/api/method/tenant_erpgulf.employee.get_location_full_details
   headers:
     - name: authorization
-      value: Bearer xxxx
+      value: Bearer 2a4eebDmbbkjzr4A7yfmZKWNmZvsel
     - name: content-type
       value: multipart/form-data
     - name: Content-Type

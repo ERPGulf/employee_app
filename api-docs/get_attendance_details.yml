@@ -13,7 +13,7 @@ http:
       value: ""
       disabled: true
     - name: Cookie
-      value: xxxx
+      value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
   body:
     type: form-urlencoded
     data:

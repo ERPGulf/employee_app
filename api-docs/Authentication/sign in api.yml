@@ -10,15 +10,15 @@ http:
     type: form-urlencoded
     data:
       - name: mobile_no
-        value: "xxxx"
+        value: "654761"
       - name: otp
-        value: "xxxx"
+        value: "123456"
         disabled: true
       - name: password
-        value: xxxx
+        value: user_12324
   auth:
     type: bearer
-    token: xxxx
+    token: yp1i85pIRk0GiJPtf9U9Fgs4Q3xIVP
 
 settings:
   encodeUrl: true

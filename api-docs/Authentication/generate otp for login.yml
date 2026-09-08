@@ -5,15 +5,15 @@ info:
 
 http:
   method: POST
-  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.authentication.otp_generate_for_sign_in
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.authentication.generate_and_send_otp
   body:
     type: form-urlencoded
     data:
       - name: mobile_no
-        value: "xxxx"
+        value: "6547"
   auth:
     type: bearer
-    token: xxxx
+    token: LlJqD49F1upqq2r01Xl9YBFM4FXuin
 
 settings:
   encodeUrl: true
@@ -73,6 +73,23 @@ docs: |2-
       {
         "status": "error",
         "message": "No employee found for the given phone number"
+      }
+      ```
+
+      Error — missing `mobile_no` (400):
+      ```json
+      {
+        "status": "error",
+        "message": "mobile_no is required"
+      }
+      ```
+
+      Error — WhatsApp delivery failed in live mode (500):
+      ```json
+      {
+        "status": "error",
+        "message": "OTP generated but WhatsApp delivery failed",
+        "detail": null
       }
       ```
 

@@ -10,9 +10,9 @@ http:
     type: form-urlencoded
     data:
       - name: mobile_no
-        value: "xxxx"
+        value: "919961343245"
       - name: password
-        value: xxxx
+        value: Friday2000@A
   auth: inherit
 
 settings:

@@ -8,7 +8,7 @@ http:
   url: https://malavika16.erpgulf.com:3045/api/method/employee_app.attendance_api.sync_all_employee_session_windows
   auth:
     type: bearer
-    token: xxxx
+    token: pmNq1kKOK9OCgqTuroSaSAVZXMVoGp
 
 settings:
   encodeUrl: true
