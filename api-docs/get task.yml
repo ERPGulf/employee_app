@@ -13,7 +13,7 @@ http:
         value: 3tu5osjdt3
   auth:
     type: bearer
-    token: ecX08n8LjyoFRt3ngGpmKoUPiJRmeT
+    token: xxxx
 
 settings:
   encodeUrl: true

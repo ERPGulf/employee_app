@@ -10,9 +10,9 @@ http:
     - name: Content-Type
       value: application/json
     - name: Authorization
-      value: Bearer l2IOYXIZbl5vF20PxrL7zXPhjn1idM
+      value: Bearer xxxx
     - name: Cookie
-      value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
+      value: xxxx
   body:
     type: json
     data: |-

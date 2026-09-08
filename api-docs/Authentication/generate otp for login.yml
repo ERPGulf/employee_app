@@ -10,10 +10,10 @@ http:
     type: form-urlencoded
     data:
       - name: mobile_no
-        value: "654761"
+        value: "xxxx"
   auth:
     type: bearer
-    token: LlJqD49F1upqq2r01Xl9YBFM4FXuin
+    token: xxxx
 
 settings:
   encodeUrl: true

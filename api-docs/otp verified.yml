@@ -10,10 +10,10 @@ http:
     type: form-urlencoded
     data:
       - name: otp
-        value: "269043"
+        value: "xxxx"
   auth:
     type: bearer
-    token: SUFlkySPAR07bu0fq6x3Svl6nv2N43
+    token: xxxx
 
 settings:
   encodeUrl: true

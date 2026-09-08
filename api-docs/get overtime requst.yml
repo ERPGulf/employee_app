@@ -13,7 +13,7 @@ http:
         value: HR-EMP-00001
   auth:
     type: bearer
-    token: I62X1tLbuG1WjdbcHMZFaa7twzRFpm
+    token: xxxx
 
 settings:
   encodeUrl: true

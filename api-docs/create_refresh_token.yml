@@ -10,10 +10,10 @@ http:
     - name: Content-Type
       value: application/x-www-form-urlencoded
     - name: Authorization
-      value: Bearer Pk9q9SSFsIKgEtD3CCY7YWCtU6MbUf
+      value: Bearer xxxx
       disabled: true
     - name: Cookie
-      value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
+      value: xxxx
   body:
     type: form-urlencoded
     data:

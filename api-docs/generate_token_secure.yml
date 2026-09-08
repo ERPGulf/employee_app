@@ -10,14 +10,14 @@ http:
     - name: Content-Type
       value: application/x-www-form-urlencoded
     - name: Cookie
-      value: sid=Guest
+      value: xxxx
   body:
     type: form-urlencoded
     data:
       - name: api_key
-        value: Administrator
+        value: xxxx
       - name: api_secret
-        value: Friday2000@T
+        value: xxxx
       - name: app_key
         value: dGVuYW50X2VycGd1bGY=
 

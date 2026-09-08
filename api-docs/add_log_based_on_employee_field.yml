@@ -14,7 +14,7 @@ http:
       value: ""
       disabled: true
     - name: Cookie
-      value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
+      value: xxxx
   body:
     type: multipart-form
     data:
@@ -42,7 +42,7 @@ http:
           - C:\Users\HP\OneDrive\Pictures\Screenshots\Screenshot 2026-06-11 133721.png
   auth:
     type: bearer
-    token: OzU2SCk90vrt9fnc8K2x7xBXvA5ZkU
+    token: xxxx
 
 settings:
   encodeUrl: true
