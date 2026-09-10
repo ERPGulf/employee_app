@@ -11,6 +11,58 @@ from werkzeug.wrappers import Response
 
 
 # ════════════════════════════════════════════════════════════════════════════════
+# PUBLIC — Look up an Employee's login policy by phone number (no OTP sent)
+# ════════════════════════════════════════════════════════════════════════════════
+
+@frappe.whitelist()
+def get_employee_login_policy(mobile=None):
+    try:
+        if not mobile:
+            return Response(
+                json.dumps({"status": "error", "message": "mobile is required"}),
+                status=400, mimetype="application/json",
+            )
+
+        employee = _find_employee_by_mobile(mobile)
+
+        if not employee:
+            return Response(
+                json.dumps({
+                    "status":  "error",
+                    "message": "No employee found for the given phone number",
+                }),
+                status=404, mimetype="application/json",
+            )
+
+        employee_id     = employee["name"]
+        password_policy = employee.get("custom_password_policy") or "No"
+        otp_policy      = employee.get("custom_otp_policy") or "No"
+        user_created_password = frappe.db.get_value("Employee", employee_id, "custom_user_created_password")
+        employee_has_signed_up=frappe.db.get_value("Employee", employee_id, "custom_employee_has_signed_up")
+
+        return Response(
+            json.dumps({
+                "status":      "success",
+                "employee_id": employee_id,
+                "policy": {
+                    "password_policy": password_policy,
+                    "otp_policy":      otp_policy,
+                },
+                "employee_has_existing_password": bool(user_created_password),
+                "employee_has_signed_up": bool(employee_has_signed_up),
+            }),
+            status=200, mimetype="application/json",
+        )
+
+    except Exception as e:
+        frappe.log_error(title="get_employee_login_policy error", message=frappe.get_traceback())
+        return Response(
+            json.dumps({"status": "error", "message": str(e)}),
+            status=500, mimetype="application/json",
+        )
+
+
+# ════════════════════════════════════════════════════════════════════════════════
 # PUBLIC — Generate & send OTP, matched by phone number
 # ════════════════════════════════════════════════════════════════════════════════
 
@@ -25,7 +77,6 @@ def generate_and_send_otp(mobile_no=None):
 
         # ── STEP 1: Look up the Employee whose mobile_no matches the payload ──
         employee = _find_employee_by_mobile(mobile_no)
-        user_created_password = frappe.db.get_value("Employee", employee.name, "custom_user_created_password") if employee else None
 
         if not employee:
             return Response(
@@ -38,9 +89,6 @@ def generate_and_send_otp(mobile_no=None):
 
         employee_id     = employee["name"]
         employee_mobile = employee["cell_number"]
-        password_policy = employee.get("custom_password_policy") or "No"
-        otp_policy      = employee.get("custom_otp_policy") or "No"
-
 
         # ── Fetch WhatsApp Saudi config ────────────────────────────────────────
         wa_config   = frappe.get_doc("Whatsapp Saudi")
@@ -67,14 +115,8 @@ def generate_and_send_otp(mobile_no=None):
             )
             return Response(
                 json.dumps({
-                    "status":      "success",
-                    "message":     "OTP sent successfully",   # ← returned only in testing mode
-                    "employee_id": employee_id,
-                    "policy": {
-                        "password_policy": password_policy,
-                        "otp_policy":      otp_policy,
-                    },
-                    "employee_has_existing_password": bool(user_created_password),
+                    "status":         "success",
+                    "message":        "OTP sent successfully",   # ← returned only in testing mode
                     "otp_expires_in": otp_expires_in_sec,
                 }),
                 status=200, mimetype="application/json",
@@ -86,8 +128,6 @@ def generate_and_send_otp(mobile_no=None):
             phone=_clean_phone_number(employee_mobile),
             otp_code=otp,
         )
-
-
 
         # send_otp() (whatsapp_saudi) returns different shapes depending on
         # the configured provider — success is either {"success": True, ...}
@@ -108,13 +148,8 @@ def generate_and_send_otp(mobile_no=None):
 
         return Response(
             json.dumps({
-                "status":      "success",
-                "message":     "OTP sent successfully",
-                "employee_id": employee_id,
-                "policy": {
-                    "password_policy": password_policy,
-                    "otp_policy":      otp_policy,
-                },
+                "status":         "success",
+                "message":        "OTP sent successfully",
                 "otp_expires_in": otp_expires_in_sec,
                 # otp intentionally omitted in live mode
             }),
@@ -122,7 +157,7 @@ def generate_and_send_otp(mobile_no=None):
         )
 
     except Exception as e:
-        frappe.log_error(title="generate_and_send_otp error", message=frappe.get_traceback())
+        frappe.log_error(title="send_otp error", message=frappe.get_traceback())
         return Response(
             json.dumps({"status": "error", "message": str(e)}),
             status=500, mimetype="application/json",
@@ -193,7 +228,7 @@ def _clean_phone_number(number):
 @frappe.whitelist()
 def sign_up_api(mobile_no=None, otp=None, password=None):
     """
-    Verify the OTP sent via generate_and_send_otp, optionally check the
+    Verify the OTP sent via send_otp, optionally check the
     customer's password (driven by custom_password_policy), and — on
     success — issue an OAuth2 access token.
 
@@ -202,9 +237,9 @@ def sign_up_api(mobile_no=None, otp=None, password=None):
 
     Params:
         mobile_no : phone number used to look up the Customer (same matching
-                    logic as generate_and_send_otp) and the OTP cache key.
+                    logic as send_otp) and the OTP cache key.
         otp       : the OTP code entered by the user. Always required and
-                    always checked against what generate_and_send_otp
+                    always checked against what send_otp
                     cached — custom_otp_policy is not consulted here.
         password  : Not verified against any existing value — it's written
                     straight into the Customer's custom_password field once
@@ -366,10 +401,12 @@ def sign_up_api(mobile_no=None, otp=None, password=None):
         app_key = base64.b64encode(app_name.encode()).decode("utf-8")
 
         # ── STEP 5: Issue the OAuth2 token via the shared helper ────────────
-        error_response, token_json = issue_oauth_tokens_for_app(app_key, employee_id)
+        error_response, token_json = issue_oauth_tokens_for_app(app_key, employee_id,password)
 
         if error_response:
             return error_response
+
+        frappe.db.set_value("Employee", employee_id, "custom_employee_has_signed_up", 1)
 
         return Response(
             json.dumps({
@@ -685,7 +722,7 @@ def set_employee_password(employee_id=None, password=None):
 
 
 
-def issue_oauth_tokens_for_app(app_key, employee_id):
+def issue_oauth_tokens_for_app(app_key, employee_id,password):
     """
     Decode app_key, resolve the matching OAuth Client, load the employee's
     own login credentials (Employee.user_id / Employee.custom_password) and
@@ -709,7 +746,7 @@ def issue_oauth_tokens_for_app(app_key, employee_id):
         # tabEmployee column (see _write_custom_password) — it never goes
         # through __Auth, so it must be read back the same way rather than
         # via get_decrypted_password (which only looks in __Auth).
-        password = frappe.db.get_value("Employee", employee_doc.name, "custom_employee_password")
+
 
     except Exception as e:
         return Response(
@@ -834,6 +871,7 @@ def master_token():
                 api_key = doc.user
                 api_secret = doc.password
                 key=doc.app_key
+
 
 
                 app_key = base64.b64decode(key).decode("utf-8")

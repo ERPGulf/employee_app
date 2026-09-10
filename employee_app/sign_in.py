@@ -27,7 +27,7 @@ def otp_generate_for_sign_in(mobile_no=None, password=None):
 
     Params:
         mobile_no : phone number used to look up the Employee (same matching
-                    logic as generate_and_send_otp / verify_otp).
+                    logic as send_otp / verify_otp).
         password  : validated against the login password of the User linked
                     to the Employee's user_id field, via frappe's
                     check_password (same mechanism used by
@@ -137,29 +137,31 @@ def sign_in_api(mobile_no=None, otp=None, password=None):
 
     Params:
         mobile_no : same phone number passed to sign_in().
-        otp       : the OTP code entered by the user. Optional — see below.
-                    When supplied, it's checked-and-cleared against what
-                    sign_in() cached (mirrors verify_otp() in
-                    authentication.py), so a consumed OTP can never be
-                    replayed on a later call.
-        password  : optional. When supplied, it is (re-)verified/updated here
-                    against the Employee's linked User login password via
-                    _verify_password, same as sign_in()'s own password check.
-
-    At least one of otp / password must be supplied:
-        - password only (no otp): password is verified, OTP is not checked
-          at all, token is issued.
-        - password and otp: both are verified, token is issued only if both
-          pass.
-        - otp only (no password): OTP is verified as before, password is not
-          re-checked here (it was already checked in sign_in(), if at all).
+        otp       : the OTP code entered by the user. Optional. When
+                    supplied, it's checked-and-cleared against what sign_in()
+                    cached (mirrors verify_otp() in authentication.py), so a
+                    consumed OTP can never be replayed on a later call.
+        password  : REQUIRED on every call — issue_oauth_tokens_for_app needs
+                    a real password to request the OAuth2 token, there's no
+                    other credential source. Driven by the Employee's
+                    custom_user_created_password flag:
+                    - Enabled (employee already has a real, chosen password):
+                      `password` must be that password — verified via
+                      _verify_password; wrong password = rejected.
+                    - Disabled (employee hasn't chosen one yet): `password`
+                      is treated as the app's auto-generated placeholder —
+                      written straight into the login password via
+                      update_password and used as-is for the token request.
+                      custom_user_created_password is NOT flipped on here;
+                      that transition is owned elsewhere.
     """
     try:
-        if not mobile_no or (not otp and not password):
+
+        if not mobile_no or not password:
             return Response(
                 json.dumps({
                     "status":  "error",
-                    "message": "mobile_no and (otp or password) are required",
+                    "message": "mobile_no and password are required",
                 }),
                 status=400, mimetype="application/json",
             )
@@ -199,39 +201,44 @@ def sign_in_api(mobile_no=None, otp=None, password=None):
 
             frappe.cache().delete_value(key)
 
-        # ── Verify password, if supplied ─────────────────────────────────────
-        # custom_user_created_password tells us whether the employee has
-        # already chosen their own password (set via verify_otp): if so, the
-        # incoming password must match it; if not, there's no real password
-        # to check against yet, so whatever is passed here becomes the
-        # employee's login password.
-        if password:
-            user_created_password = frappe.db.get_value(
-                "Employee", employee_id, "custom_user_created_password"
-            )
+        # ── Verify / set password — mandatory, driven by
+        # custom_user_created_password. Enabled means the employee already
+        # chose a real password, so the incoming one must match it. Disabled
+        # means there's no real password to check against yet, so whatever
+        # is passed here (the app's auto-generated placeholder) becomes the
+        # employee's login password. ─────────────────────────────────────────
+        user_created_password = frappe.db.get_value(
+            "Employee", employee_id, "custom_user_created_password"
+        )
 
-            if user_created_password:
-                if not employee_user_id or not _verify_password(employee_user_id, password):
-                    return Response(
-                        json.dumps({
-                            "status":  "error",
-                            "message": "Invalid password",
-                        }),
-                        status=401, mimetype="application/json",
-                    )
-            else:
-                if not employee_user_id:
-                    return Response(
-                        json.dumps({
-                            "status":  "error",
-                            "message": "No user account linked to this employee",
-                        }),
-                        status=404, mimetype="application/json",
-                    )
-                update_password(employee_user_id, password)
+        if user_created_password:
+            if not employee_user_id or not _verify_password(employee_user_id, password):
+                return Response(
+                    json.dumps({
+                        "status":  "error",
+                        "message": "Invalid password",
+                    }),
+                    status=401, mimetype="application/json",
+                )
+        else:
+            if not employee_user_id:
+                return Response(
+                    json.dumps({
+                        "status":  "error",
+                        "message": "No user account linked to this employee",
+                    }),
+                    status=404, mimetype="application/json",
+                )
+            update_password(employee_user_id, password)
+            # issue_oauth_tokens_for_app makes its own HTTP request to this
+            # site's token endpoint — a separate request/DB connection — to
+            # mint the token. Without committing here first, that request
+            # can't see the password we just wrote and the OAuth grant fails.
+            frappe.db.commit()
 
         # ── Verified — issue access + refresh token ──────────────────────────
-        return _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy, otp_policy)
+
+        return _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy, otp_policy, password)
 
     except Exception as e:
         frappe.log_error(title="verify_sign_in_otp error", message=frappe.get_traceback())
@@ -242,7 +249,7 @@ def sign_in_api(mobile_no=None, otp=None, password=None):
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# INTERNAL — Send sign-in OTP (mirrors generate_and_send_otp)
+# INTERNAL — Send sign-in OTP (mirrors send_otp)
 # ════════════════════════════════════════════════════════════════════════════════
 
 def _send_sign_in_otp(employee_id, employee_mobile, password_policy, otp_policy):
@@ -323,7 +330,7 @@ def _send_sign_in_otp(employee_id, employee_mobile, password_policy, otp_policy)
 # INTERNAL — Issue the access token directly (otp_policy == "No" path)
 # ════════════════════════════════════════════════════════════════════════════════
 
-def _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy, otp_policy):
+def _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy, otp_policy, password):
     # ── GET employee phone from primary contact ─────────────────────────
     employee_phone = None
     try:
@@ -368,8 +375,11 @@ def _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy
 
     app_key = base64.b64encode(app_name.encode()).decode("utf-8")
 
+
     # ── Issue the OAuth2 token via the shared helper ─────────────────────
-    error_response, token_json = issue_oauth_tokens_for_app(app_key,employee_id)
+    error_response, token_json = issue_oauth_tokens_for_app(app_key,employee_id,password)
+
+
 
     if error_response:
         return error_response
@@ -482,7 +492,7 @@ def _extract_local_number(phone):
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# INTERNAL — Send OTP via WhatsApp (same as generate_and_send_otp)
+# INTERNAL — Send OTP via WhatsApp (same as send_otp)
 # ════════════════════════════════════════════════════════════════════════════════
 
 def _send_otp_whatsapp(mobile_no, otp):
@@ -539,7 +549,7 @@ def _send_otp_whatsapp(mobile_no, otp):
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# INTERNAL — Clean phone number (same as generate_and_send_otp)
+# INTERNAL — Clean phone number (same as send_otp)
 # ════════════════════════════════════════════════════════════════════════════════
 
 def _clean_phone_number(number):
