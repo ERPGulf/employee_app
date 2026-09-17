@@ -23,9 +23,9 @@ def get_employee_login_policy(mobile=None):
                 status=400, mimetype="application/json",
             )
 
-        employee = _find_employee_by_mobile(mobile)
+        employee_row = _find_employee_by_mobile(mobile)
 
-        if not employee:
+        if not employee_row:
             return Response(
                 json.dumps({
                     "status":  "error",
@@ -34,22 +34,25 @@ def get_employee_login_policy(mobile=None):
                 status=404, mimetype="application/json",
             )
 
-        employee_id     = employee["name"]
-        password_policy = employee.get("custom_password_policy") or "No"
-        otp_policy      = employee.get("custom_otp_policy") or "No"
-        user_created_password = frappe.db.get_value("Employee", employee_id, "custom_user_created_password")
-        employee_has_signed_up=frappe.db.get_value("Employee", employee_id, "custom_employee_has_signed_up")
+        employee_id = employee_row["name"]
+        employee    = frappe.get_doc("Employee", employee_id)
+
+        sign_up_policy = {
+            "password_policy": employee.custom_password_policy or "No",
+            "otp_policy":      employee.custom_otp_policy or "No",
+        }
+        sign_in_policy    = _first_policy_row(employee.custom_sign_in_policy)
+        cold_boot_policy  = _first_policy_row(employee.custom_cold_boot_policy)
 
         return Response(
             json.dumps({
-                "status":      "success",
-                "employee_id": employee_id,
-                "policy": {
-                    "password_policy": password_policy,
-                    "otp_policy":      otp_policy,
-                },
-                "employee_has_existing_password": bool(user_created_password),
-                "employee_has_signed_up": bool(employee_has_signed_up),
+                "status":            "success",
+                "employee_id":       employee_id,
+                "sign_up_policy":    sign_up_policy,
+                "sign_in_policy":    sign_in_policy,
+                "cold_boot_policy":  cold_boot_policy,
+                "employee_has_existing_password": bool(employee.custom_user_created_password),
+                "employee_has_signed_up": bool(employee.custom_employee_has_signed_up),
             }),
             status=200, mimetype="application/json",
         )
@@ -60,6 +63,21 @@ def get_employee_login_policy(mobile=None):
             json.dumps({"status": "error", "message": str(e)}),
             status=500, mimetype="application/json",
         )
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# INTERNAL — Read the (single) policy row off a "custom_sign_in_policy" /
+# "custom_cold_boot_policy" child table, defaulting to "No"/"No" when empty
+# ════════════════════════════════════════════════════════════════════════════════
+
+def _first_policy_row(rows):
+    if rows:
+        row = rows[0]
+        return {
+            "password_policy": row.password_policy or "No",
+            "otp_policy":      row.otp_policy or "No",
+        }
+    return {"password_policy": "No", "otp_policy": "No"}
 
 
 # ════════════════════════════════════════════════════════════════════════════════
