@@ -1128,8 +1128,7 @@ def employee_checkin_setting():
                 "geo_tagging": GEO_TAGGING_OPTIONS.get(settings.geo_tagging, 0),
                 "employee_checkin_break": bool(settings.employee_checkin_break),
                 "attendance_request": bool(settings.attendance_request),
-                "attendance_history": bool(settings.attendance_history),
-                "auto_attendance": bool(settings.auto_attendance),
+                "attendance_history": bool(settings.attendance_history)
             },
             "loan_application": bool(settings.loan_application),
             "expense_claim": bool(settings.expense_claim),
