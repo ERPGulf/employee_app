@@ -1,0 +1,28 @@
+info:
+  name: get location full details
+  type: http
+  seq: 31
+
+http:
+  method: post
+  url: https://malavika16.erpgulf.com:3045/api/method/tenant_erpgulf.employee.get_location_full_details
+  headers:
+    - name: authorization
+      value: Bearer 2a4eebDmbbkjzr4A7yfmZKWNmZvsel
+    - name: content-type
+      value: multipart/form-data
+    - name: Content-Type
+      value: multipart/form-data
+  body:
+    type: multipart-form
+    data:
+      - name: location_name
+        type: text
+        value: adc
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

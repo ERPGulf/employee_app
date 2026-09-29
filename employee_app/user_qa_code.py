@@ -45,8 +45,6 @@ def create_qr_code(doc, method):
 			# if not doc.custom_photo_:
 			# 	frappe.throw(_('Photo missing for {} in the document'.format(doc.name)))
 
-			if not doc.custom_restrict_location and doc.custom_restrict_location != 0:
-				frappe.throw(_('Restrict Location missing for {} in the document'.format(doc.name)))
 
 			if not doc.user_id:
 				frappe.throw(_('User ID missing for {} in the document'.format(doc.name)))
@@ -62,7 +60,6 @@ def create_qr_code(doc, method):
 				f" Employee_Code: {doc.name}"
 				f" Full_Name: {doc.first_name}  {last_name}"
 				f" Photo: {doc.custom_photo_}"
-				f" Restrict Location: {doc.custom_restrict_location}"
 				f" User_id: {doc.user_id}"
 				f" API: {frappe.local.conf.host_name}"
 				f" App_key: {app_key}"

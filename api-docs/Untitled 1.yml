@@ -10,9 +10,9 @@ http:
     - name: content-type
       value: application/x-www-form-urlencoded
     - name: cookie
-      value: sid=Guest
+      value: xxxx
     - name: Cookie
-      value: sid=Guest
+      value: xxxx
   body:
     type: form-urlencoded
   auth: inherit

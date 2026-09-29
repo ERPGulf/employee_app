@@ -9,27 +9,40 @@ http:
   headers:
     - name: Content-Type
       value: application/x-www-form-urlencoded
+      disabled: true
     - name: Authorization
       value: ""
       disabled: true
     - name: Cookie
       value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
   body:
-    type: form-urlencoded
+    type: multipart-form
     data:
       - name: employee_field_value
+        type: text
         value: HR-EMP-00003
       - name: timestamp
-        value: 2026-06-17 12:46:00
+        type: text
+        value: 2026-07-23 21:46:09
       - name: device_id
+        type: text
         value: "09267"
       - name: log_type
+        type: text
         value: IN
       - name: location
+        type: text
         value: pmna
+      - name: over_time
+        type: text
+        value: "1"
+      - name: file
+        type: file
+        value:
+          - C:\Users\HP\OneDrive\Pictures\Screenshots\Screenshot 2026-06-11 133721.png
   auth:
     type: bearer
-    token: "{token}"
+    token: OzU2SCk90vrt9fnc8K2x7xBXvA5ZkU
 
 settings:
   encodeUrl: true
@@ -72,4 +85,6 @@ docs: |2+
     - `log_type` must be exactly `IN` or `OUT` (case-sensitive).
     - Timestamps should be in the server's local timezone.
     - Duplicate logs within a short window may be rejected.
+    - Here we taking overtime then enable overtime =1 else 0
+    - if you need to attach file then use file argument
 

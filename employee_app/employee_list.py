@@ -199,3 +199,45 @@ def list_leave_application(limit_start: int = 0, limit_page_length: int = 20):
             status=500,
             mimetype="application/json",
         )
+
+
+
+@frappe.whitelist()
+def add_employee_app_log(employee: str = None, date: str = None, json_data=None, response=None):
+    """Insert a record into Employee App Logs"""
+    try:
+        if json_data is not None and not isinstance(json_data, str):
+            json_data = json.dumps(json_data)
+        if response is not None and not isinstance(response, str):
+            response = json.dumps(response)
+
+        doc = frappe.get_doc({
+            "doctype": "Employee App Logs",
+            "employee": employee,
+            "date": date or nowdate(),
+            "json_data": json_data,
+            "response": response,
+        })
+        doc.insert(ignore_permissions=True)
+
+        return Response(
+            json.dumps({
+                "data": {
+                    "name": doc.name,
+                    "employee": doc.employee,
+                    "date": str(doc.date),
+                    "json_data": doc.json_data,
+                    "response": doc.response,
+                },
+            }),
+            status=200,
+            mimetype="application/json",
+        )
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "add_employee_app_log Error")
+        return Response(
+            json.dumps({"status": "error", "message": str(e)}),
+            status=500,
+            mimetype="application/json",
+        )

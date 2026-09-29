@@ -1,0 +1,94 @@
+info:
+  name: sign in api
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.sign_in.sign_in_api
+  body:
+    type: form-urlencoded
+    data:
+      - name: mobile_no
+        value: "654761"
+      - name: otp
+        value: "123456"
+        disabled: true
+      - name: password
+        value: user_12324
+  auth:
+    type: bearer
+    token: yp1i85pIRk0GiJPtf9U9Fgs4Q3xIVP
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Sign In API
+
+      Completes sign-in after `sign in otp generation` has sent an OTP — step 2
+      of OTP-based sign-in when `custom_otp_policy` is `Mandatory` or
+      `Optional`. Can also be used on its own to verify or set a password.
+
+      ## Authentication
+      Requires a valid Bearer token.
+
+      ## Parameters
+
+      | Name      | Type   | Required    | Description                                                                          |
+      |-----------|--------|-------------|---------------------------------------------------------------------------------------|
+      | mobile_no | string | Yes         | Same phone number passed to `sign in otp generation`                                  |
+      | otp       | string | Conditional | OTP entered by the user, checked-and-cleared against the cache. At least one of `otp` / `password` is required |
+      | password  | string | Conditional | Verified (if the employee already has a self-chosen password) or set (if not). At least one of `otp` / `password` is required |
+
+      ## Response
+
+      Success:
+      ```json
+      {
+        "status": "success",
+        "data": {
+          "token": {
+            "access_token": "...",
+            "refresh_token": "...",
+            "token_type": "bearer",
+            "expires_in": 3600,
+            "scope": "..."
+          },
+          "employee": {
+            "id": "HR-EMP-00003",
+            "employee_name": "John Doe",
+            "phone": "5xxxxxxxx",
+            "email": "john.doe@example.com"
+          },
+          "password_policy": "Mandatory",
+          "otp_policy": "Mandatory",
+          "time": "2026-06-17 12:46:00"
+        }
+      }
+      ```
+
+      Error — invalid/expired OTP:
+      ```json
+      {
+        "status": "error",
+        "message": "Invalid or expired OTP"
+      }
+      ```
+
+      Error — invalid password:
+      ```json
+      {
+        "status": "error",
+        "message": "Invalid password"
+      }
+      ```
+
+      ## Notes
+      - Either `otp`, `password`, or both must be supplied; supplying neither returns a 400 error.
+      - If the employee has not yet chosen their own password (`custom_user_created_password` is unset), the supplied `password` is written as their new login password instead of being verified against an existing one.
+      - A consumed OTP is deleted from the cache immediately, so it cannot be replayed on a later call.
+      - On success, returns the same OAuth2 access + refresh token pair as `sign up`.

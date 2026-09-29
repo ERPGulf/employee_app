@@ -28,7 +28,7 @@ class EmployeeBreak(Document):
                     "log_type": "IN",
                     "time": ["<=", self.time]
                 },
-                fields=["name", "time"],
+                fields=["name", "time", "reason"],
                 order_by="time desc",
                 limit=1
             )
@@ -37,6 +37,7 @@ class EmployeeBreak(Document):
                 frappe.throw("No IN log found before OUT.")
 
             in_time = last_in[0].time
+            break_reason = last_in[0].reason or self.reason
 
 
             existing_break = frappe.db.exists(
@@ -72,6 +73,7 @@ class EmployeeBreak(Document):
                 "time_in": in_time,
                 "time_out": final_to_time,
                 "total_break_hours": final_hours,
+                "description": break_reason,
                 "company": frappe.db.get_value("Employee", self.employee, "company")
             })
 

@@ -1,0 +1,58 @@
+info:
+  name: master token
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.authentication.master_token
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |2
+   # Master Token
+
+      Issues an OAuth2 access token for a fixed service/master account
+      configured on the `Checkin App Setting` doctype, rather than for a
+      specific employee. Used by the mobile app for calls that don't need
+      employee-level identity,this token need to use only for authentication apis(generate otp, sign up, sign in) e.g. before an employee has signed in.
+
+      ## Authentication
+      No employee-level bearer token required — the credentials are read
+      server-side from `Checkin App Setting` (`user` / `password` / `app_key`).
+
+      ## Parameters
+      None.
+
+      ## Response
+
+      Success:
+      ```json
+      {
+        "data": {
+          "access_token": "...",
+          "token_type": "bearer",
+          "expires_in": 3600,
+          "refresh_token": "...",
+          "scope": "..."
+        }
+      }
+      ```
+
+      Error — `Checkin App Setting` missing/misconfigured, or `app_key` doesn't match any `OAuth Client`:
+      ```json
+      {
+        "message": "Security Parameters are not valid",
+        "user_count": 0
+      }
+      ```
+
+      ## Notes
+      - `app_key` stored on `Checkin App Setting` must be the base64-encoded `app_name` of an existing `OAuth Client`.
+      - The `user` / `password` fields on `Checkin App Setting` are used as the OAuth2 password-grant credentials against this site's own `/api/method/frappe.integrations.oauth2.get_token` endpoint.
+      - Returns HTTP 401 if the underlying OAuth2 token request fails.
