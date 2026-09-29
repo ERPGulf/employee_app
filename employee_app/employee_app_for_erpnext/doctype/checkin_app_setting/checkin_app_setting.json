@@ -12,6 +12,7 @@
   "employee_records",
   "leave_request",
   "loan_application",
+  "employee_resignation",
   "attendance_actions_column",
   "offline_attendance",
   "offline_attendance_version",
@@ -257,13 +258,19 @@
    "fieldname": "attendance_actions_column",
    "fieldtype": "Column Break",
    "label": "Attendance Actions"
+  },
+  {
+   "default": "0",
+   "fieldname": "employee_resignation",
+   "fieldtype": "Check",
+   "label": "Employee Resignation"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-18 10:24:48.597148",
+ "modified": "2026-09-29 14:19:14.442280",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Checkin App Setting",

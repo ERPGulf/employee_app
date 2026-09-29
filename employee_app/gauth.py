@@ -740,6 +740,7 @@ def employee_checkin_setting():
             "leave_request": bool(settings.leave_request),
             "employee_records": bool(settings.employee_records),
             "complaints": bool(settings.complaints),
+            "employee_resignation": bool(settings.employee_resignation),
         }
         return Response(
             json.dumps(data),
