@@ -2071,3 +2071,4 @@ def get_attendance_history(employee: str = None, month: int = None, year: int = 
             status=500,
             mimetype="application/json",
         )
+
