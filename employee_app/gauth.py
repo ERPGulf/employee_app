@@ -1084,21 +1084,81 @@ def verify_otp(otp):
 
 
 @frappe.whitelist()
-def create_new_password(new_password):
-    user = frappe.session.user
-    if not user:
+def create_new_password(mobile_no=None, otp=None, new_password=None):
+    """
+    Set a new password for the Employee matched by mobile_no, after verifying
+    the OTP sent by authentication.generate_and_send_otp(mobile_no).
+
+    The password is saved as the linked User's login password and
+    custom_user_created_password is turned on, so get_employee_login_policy
+    reflects it (for "Optional" Authentication, sign-in / cold boot switch
+    to password).
+    """
+    from employee_app.authentication import (
+        _find_employee_by_mobile,
+        _update_user_created_password_flag,
+        _write_custom_password,
+        is_placeholder_password,
+    )
+
+    if not mobile_no or not otp or not new_password:
+        data = {
+            "status": "error",
+            "message": "mobile_no, otp and new_password are required"
+        }
         return Response(
-            json.dumps({"message": "User not found for the given employee."}),
+            json.dumps({"data": data}),
+            status=400,
+            mimetype="application/json"
+        )
+
+    if is_placeholder_password(new_password):
+        data = {
+            "status": "error",
+            "message": "Please choose a different password"
+        }
+        return Response(
+            json.dumps({"data": data}),
+            status=400,
+            mimetype="application/json"
+        )
+
+    employee = _find_employee_by_mobile(mobile_no)
+    if not employee or not employee.get("user_id"):
+        data = {
+            "status": "error",
+            "message": "No employee user found for the given phone number"
+        }
+        return Response(
+            json.dumps({"data": data}),
             status=404,
             mimetype="application/json"
         )
 
-    pwd=update_password(user, new_password)
+    key = f"otp:{employee['cell_number']}"
+    cached_otp = frappe.cache().get_value(key)
 
+    if not cached_otp or str(cached_otp) != str(otp):
+        data = {
+            "status": "error",
+            "message": "Invalid or expired OTP"
+        }
+        return Response(
+            json.dumps({"data": data}),
+            status=401,
+            mimetype="application/json"
+        )
+
+    frappe.cache().delete_value(key)
+
+    update_password(employee["user_id"], new_password)
+    _update_user_created_password_flag(employee["name"], new_password)
+    _write_custom_password(employee["name"], new_password)  # commits
 
     data = {
         "status": "success",
-        "message": "Password updated successfully"
+        "message": "Password updated successfully",
+        "employee_id": employee["name"]
     }
     return Response(
             json.dumps({"data": data}),

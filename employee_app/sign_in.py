@@ -9,44 +9,45 @@ from frappe.utils import now_datetime
 from frappe.utils.password import check_password, update_password
 from werkzeug.wrappers import Response
 
-from employee_app.authentication import issue_oauth_tokens_for_app
-
-# NOTE: adjust the import path above to wherever customer_oauth_utils.py
-# actually lives in your app, e.g.:
-#   from your_app.your_app.api.customer_oauth_utils import issue_oauth_tokens_for_app
+from employee_app.authentication import (
+    POLICY_NONE,
+    _update_user_created_password_flag,
+    get_login_policies,
+    is_placeholder_password,
+    issue_oauth_tokens_for_app,
+)
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# PUBLIC — Sign in an existing customer by phone number
+# PUBLIC — Step 1 of sign-in / cold boot: check password and/or send OTP
 # ════════════════════════════════════════════════════════════════════════════════
 
 @frappe.whitelist(allow_guest=True)
-def otp_generate_for_sign_in(mobile_no=None, password=None):
+def otp_generate_for_sign_in(mobile_no=None, password=None, login_type="sign_in"):
     """
-    Sign in an existing employee, looked up by phone number.
+    Start sign-in (or cold-boot re-verification) for an existing employee,
+    looked up by phone number.
+
+    The policy comes from get_login_policies (Employee's Authentication and
+    High Security fields) — "sign_in_policy" or "cold_boot_policy" depending
+    on login_type.
 
     Params:
-        mobile_no : phone number used to look up the Employee (same matching
-                    logic as send_otp / verify_otp).
-        password  : validated against the login password of the User linked
-                    to the Employee's user_id field, via frappe's
-                    check_password (same mechanism used by
-                    validate_old_password in gauth.py). NOT overwritten —
-                    this is sign-in, not onboarding. Driven by
-                    custom_password_policy:
-                    - "Mandatory": required, must be supplied and must match.
-                    - "Optional": only checked if the caller actually supplies
-                      one; omitted password = pass.
-                    - "No" (or unset): ignored entirely.
+        mobile_no  : phone number used to look up the Employee.
+        password   : required when the policy's password_policy is
+                     "Mandatory" — validated against the login password of
+                     the User linked via Employee.user_id. Ignored otherwise.
+        login_type : "sign_in" (default) or "cold_boot".
 
-    OTP, driven by custom_otp_policy:
-        - "Mandatory" or "Optional": an OTP is generated, cached, and sent via
-          WhatsApp to the employee's mobile number. Sign-in is NOT completed
-          in this call — this only returns "OTP sent". The client must then
-          call verify_sign_in_otp(mobile_no, otp) below to receive the access
-          + refresh token.
-        - "No" (or unset): no OTP is needed — the access + refresh token is
+    Result:
+        - otp_policy "Mandatory" (OTP Authentication, Both): an OTP is sent
+          and the client must finish with
+          sign_in_api(mobile_no, otp, password, login_type).
+        - otp_policy "No" (password only): the access + refresh token is
           issued immediately, in this same call.
+        - Optional (password and OTP both "Optional"): a real password is
+          verified and the token issued immediately; the "egf..."
+          placeholder (or no password) sends an OTP instead.
     """
     try:
         if not mobile_no:
@@ -67,17 +68,18 @@ def otp_generate_for_sign_in(mobile_no=None, password=None):
                 status=404, mimetype="application/json",
             )
 
-        employee_id     = employee["name"]
-        employee_mobile = employee["cell_number"]
-        password_policy = employee.get("custom_password_policy") or "No"
-        otp_policy      = employee.get("custom_otp_policy") or "No"
+        employee_id      = employee["name"]
+        employee_mobile  = employee["cell_number"]
         employee_user_id = employee.get("user_id")
 
-        # ── STEP 2: Password check, driven by custom_password_policy ────────
-        # Validated against the User linked via Employee.user_id, using
-        # frappe's check_password — the Employee's own login password is
-        # treated as stored_password here, not the plain-text custom_password
-        # column.
+        policy, error_response = _resolve_login_policy(employee, login_type)
+        if error_response:
+            return error_response
+
+        password_policy = policy["password_policy"]
+        otp_policy      = policy["otp_policy"]
+
+        # ── STEP 2: Password check ───────────────────────────────────────────
         if password_policy == "Mandatory":
             if not password:
                 return Response(
@@ -96,26 +98,27 @@ def otp_generate_for_sign_in(mobile_no=None, password=None):
                     status=401, mimetype="application/json",
                 )
 
-        elif password_policy == "Optional":
-            # Only checked if the caller actually supplied one.
-            if password and (not employee_user_id or not _verify_password(employee_user_id, password)):
-                return Response(
-                    json.dumps({
-                        "status":  "error",
-                        "message": "Invalid password",
-                    }),
-                    status=401, mimetype="application/json",
-                )
-
-        # password_policy == "No" (or anything else) → not checked at all,
-        # even if the caller supplies one.
-
-        # ── STEP 3: OTP dispatch, driven by custom_otp_policy ────────────────
-        if otp_policy in ("Mandatory", "Optional"):
+        # ── Optional (password or OTP): a real password signs in straight
+        # away; the app placeholder (or no password) falls back to OTP. ─────
+        if password_policy == "Optional":
+            if password and not is_placeholder_password(password):
+                if not employee_user_id or not _verify_password(employee_user_id, password):
+                    return Response(
+                        json.dumps({
+                            "status":  "error",
+                            "message": "Invalid password",
+                        }),
+                        status=401, mimetype="application/json",
+                    )
+                return _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy, otp_policy, password)
             return _send_sign_in_otp(employee_id, employee_mobile, password_policy, otp_policy)
 
-        # otp_policy == "No" (or anything else) → no OTP needed, issue token now.
-        return _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy, otp_policy)
+        # ── STEP 3: OTP dispatch ─────────────────────────────────────────────
+        if otp_policy == "Mandatory":
+            return _send_sign_in_otp(employee_id, employee_mobile, password_policy, otp_policy)
+
+        # Password only → already verified above, issue token now.
+        return _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy, otp_policy, password)
 
     except Exception as e:
         frappe.log_error(title="sign_in error", message=frappe.get_traceback())
@@ -126,34 +129,37 @@ def otp_generate_for_sign_in(mobile_no=None, password=None):
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# PUBLIC — Step 2 of sign-in when custom_otp_policy is Mandatory/Optional
+# PUBLIC — Complete sign-in / cold boot and issue the token
 # ════════════════════════════════════════════════════════════════════════════════
 
 @frappe.whitelist()
-def sign_in_api(mobile_no=None, otp=None, password=None):
+def sign_in_api(mobile_no=None, otp=None, password=None, login_type="sign_in"):
     """
-    Completes sign-in after sign_in() sent an OTP (custom_otp_policy was
-    Mandatory or Optional).
+    Complete sign-in (or cold-boot re-verification) and issue the access +
+    refresh token.
+
+    The policy comes from get_login_policies — "sign_in_policy" or
+    "cold_boot_policy" depending on login_type:
+
+        Password only (Password Authentication, Both on cold boot):
+            password must match the employee's login password.
+        Optional (password and OTP both "Optional"):
+            either otp is verified, or — with no otp — password must match.
+            An OTP sign-in never overwrites a password the employee created.
+        OTP only (OTP Authentication):
+            otp is required and checked-and-cleared against the cache.
+            password is the app's auto-generated "egf..." placeholder; if it
+            doesn't match the current login password it becomes the login
+            password (the OTP has already proved identity).
+        Both:
+            otp is required and password must match.
 
     Params:
-        mobile_no : same phone number passed to sign_in().
-        otp       : the OTP code entered by the user. Optional. When
-                    supplied, it's checked-and-cleared against what sign_in()
-                    cached (mirrors verify_otp() in authentication.py), so a
-                    consumed OTP can never be replayed on a later call.
-        password  : REQUIRED on every call — issue_oauth_tokens_for_app needs
-                    a real password to request the OAuth2 token, there's no
-                    other credential source. Driven by the Employee's
-                    custom_user_created_password flag:
-                    - Enabled (employee already has a real, chosen password):
-                      `password` must be that password — verified via
-                      _verify_password; wrong password = rejected.
-                    - Disabled (employee hasn't chosen one yet): `password`
-                      is treated as the app's auto-generated placeholder —
-                      written straight into the login password via
-                      update_password and used as-is for the token request.
-                      custom_user_created_password is NOT flipped on here;
-                      that transition is owned elsewhere.
+        mobile_no  : same phone number passed to otp_generate_for_sign_in().
+        otp        : the OTP code entered by the user.
+        password   : always required — issue_oauth_tokens_for_app needs a
+                     password to request the OAuth2 token.
+        login_type : "sign_in" (default) or "cold_boot".
     """
     try:
 
@@ -180,13 +186,56 @@ def sign_in_api(mobile_no=None, otp=None, password=None):
         employee_id       = employee["name"]
         employee_mobile   = employee["cell_number"]
         employee_user_id  = employee.get("user_id")
-        password_policy   = employee.get("custom_password_policy") or "No"
-        otp_policy        = employee.get("custom_otp_policy") or "No"
 
-        # ── Verify OTP, if supplied — checked-and-cleared, same as
-        # verify_otp() in authentication.py, so it can never be replayed
-        # once consumed. ─────────────────────────────────────────────────────
-        if otp:
+        policy, error_response = _resolve_login_policy(employee, login_type)
+        if error_response:
+            return error_response
+
+        password_policy = policy["password_policy"]
+        otp_policy      = policy["otp_policy"]
+
+        if not employee_user_id:
+            return Response(
+                json.dumps({
+                    "status":  "error",
+                    "message": "No user account linked to this employee",
+                }),
+                status=404, mimetype="application/json",
+            )
+
+        # ── Verify password first (when mandatory) so a wrong password
+        # doesn't consume the OTP. ───────────────────────────────────────────
+        if password_policy == "Mandatory" and not _verify_password(employee_user_id, password):
+            return Response(
+                json.dumps({
+                    "status":  "error",
+                    "message": "Invalid password",
+                }),
+                status=401, mimetype="application/json",
+            )
+
+        # ── Optional without an OTP: the password alone must match. ─────────
+        if password_policy == "Optional" and not otp and not _verify_password(employee_user_id, password):
+            return Response(
+                json.dumps({
+                    "status":  "error",
+                    "message": "Invalid password",
+                }),
+                status=401, mimetype="application/json",
+            )
+
+        # ── Verify OTP — checked-and-cleared, same as sign_up_api() in
+        # authentication.py, so it can never be replayed once consumed. ──────
+        if otp_policy == "Mandatory" or (otp_policy == "Optional" and otp):
+            if not otp:
+                return Response(
+                    json.dumps({
+                        "status":  "error",
+                        "message": "OTP is required",
+                    }),
+                    status=400, mimetype="application/json",
+                )
+
             key        = f"otp:{employee_mobile}"
             cached_otp = frappe.cache().get_value(key)
 
@@ -201,35 +250,16 @@ def sign_in_api(mobile_no=None, otp=None, password=None):
 
             frappe.cache().delete_value(key)
 
-        # ── Verify / set password — mandatory, driven by
-        # custom_user_created_password. Enabled means the employee already
-        # chose a real password, so the incoming one must match it. Disabled
-        # means there's no real password to check against yet, so whatever
-        # is passed here (the app's auto-generated placeholder) becomes the
-        # employee's login password. ─────────────────────────────────────────
-        user_created_password = frappe.db.get_value(
-            "Employee", employee_id, "custom_user_created_password"
-        )
-
-        if user_created_password:
-            if not employee_user_id or not _verify_password(employee_user_id, password):
-                return Response(
-                    json.dumps({
-                        "status":  "error",
-                        "message": "Invalid password",
-                    }),
-                    status=401, mimetype="application/json",
-                )
-        else:
-            if not employee_user_id:
-                return Response(
-                    json.dumps({
-                        "status":  "error",
-                        "message": "No user account linked to this employee",
-                    }),
-                    status=404, mimetype="application/json",
-                )
+        # ── OTP only — the OTP proved identity and `password` is the app
+        # placeholder, so make it the login password if it isn't already. ───
+        # An employee who created their own password (Optional) keeps it —
+        # the token is requested with that stored password instead.
+        if password_policy == "Optional" and employee.get("custom_user_created_password"):
+            if not _verify_password(employee_user_id, password):
+                password = frappe.db.get_value("Employee", employee_id, "custom_employee_password")
+        elif password_policy != "Mandatory" and not _verify_password(employee_user_id, password):
             update_password(employee_user_id, password)
+            _update_user_created_password_flag(employee_id, password)
             # issue_oauth_tokens_for_app makes its own HTTP request to this
             # site's token endpoint — a separate request/DB connection — to
             # mint the token. Without committing here first, that request
@@ -246,6 +276,44 @@ def sign_in_api(mobile_no=None, otp=None, password=None):
             json.dumps({"status": "error", "message": str(e)}),
             status=500, mimetype="application/json",
         )
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# INTERNAL — Pick the sign-in or cold-boot policy for this request
+# ════════════════════════════════════════════════════════════════════════════════
+
+def _resolve_login_policy(employee, login_type):
+    """
+    Returns (policy, None) or (None, error_response).
+
+    A cold boot with no verification required (High Security off) is
+    rejected: the app should just refresh its token via
+    refresh_employee_token rather than calling the sign-in endpoints.
+    """
+    policies = get_login_policies(employee)
+    login_type = login_type or "sign_in"
+
+    if login_type == "sign_in":
+        return policies["sign_in_policy"], None
+
+    if login_type == "cold_boot":
+        if policies["cold_boot_policy"] == POLICY_NONE:
+            return None, Response(
+                json.dumps({
+                    "status":  "error",
+                    "message": "No cold boot verification required for this employee",
+                }),
+                status=400, mimetype="application/json",
+            )
+        return policies["cold_boot_policy"], None
+
+    return None, Response(
+        json.dumps({
+            "status":  "error",
+            "message": "login_type must be 'sign_in' or 'cold_boot'",
+        }),
+        status=400, mimetype="application/json",
+    )
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -327,7 +395,7 @@ def _send_sign_in_otp(employee_id, employee_mobile, password_policy, otp_policy)
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# INTERNAL — Issue the access token directly (otp_policy == "No" path)
+# INTERNAL — Issue the access + refresh token
 # ════════════════════════════════════════════════════════════════════════════════
 
 def _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy, otp_policy, password):
@@ -430,9 +498,10 @@ _EMPLOYEE_LOOKUP_FIELDS = """
     name,
     employee_name,
     cell_number,
-    custom_password_policy,
-    custom_otp_policy,
-    user_id
+    user_id,
+    custom_authentication,
+    custom_high_security,
+    custom_user_created_password
 """
 
 

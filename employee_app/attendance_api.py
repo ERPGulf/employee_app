@@ -1926,3 +1926,148 @@ def add_offline_employee_checkins(logs):
             status=500,
             mimetype="application/json",
         )
+
+
+def _paired_seconds(logs):
+    """Sum of IN->OUT durations (in seconds) for time-ordered logs"""
+    total = 0
+    last_in = None
+    for log in logs:
+        if log.log_type == "IN":
+            if not last_in:
+                last_in = log.time
+        elif log.log_type == "OUT" and last_in:
+            total += (log.time - last_in).total_seconds()
+            last_in = None
+    return total
+
+
+@frappe.whitelist(allow_guest=True)
+def get_attendance_history(employee: str = None, month: int = None, year: int = None):
+    """Day-wise attendance history of an employee for a month"""
+    import calendar
+    from hrms.hr.utils import get_holidays_for_employee
+
+    try:
+        if not employee:
+            employee = frappe.db.get_value("Employee", {"user_id": frappe.session.user}, "name")
+        if not employee or not frappe.db.exists("Employee", employee):
+            return Response(
+                json.dumps({"error": "Employee not found"}),
+                status=404,
+                mimetype="application/json",
+            )
+
+        today = getdate(nowdate())
+        month = cint(month) or today.month
+        year = cint(year) or today.year
+        if not 1 <= month <= 12:
+            return Response(
+                json.dumps({"error": "Invalid month"}),
+                status=400,
+                mimetype="application/json",
+            )
+
+        start_date = date(year, month, 1)
+        end_date = date(year, month, calendar.monthrange(year, month)[1])
+        last_date = min(end_date, today)
+
+        days = []
+        summary = {"total_worked_minutes": 0, "days_worked": 0, "leave_days": 0}
+
+        if start_date > today:
+            return {"employee": employee, "month": month, "year": year, "summary": summary, "days": days}
+
+        attendance = {
+            a.attendance_date: a.status
+            for a in frappe.get_all(
+                "Attendance",
+                filters={
+                    "employee": employee,
+                    "docstatus": 1,
+                    "attendance_date": ["between", [start_date, last_date]],
+                },
+                fields=["attendance_date", "status"],
+            )
+        }
+
+        holidays = {
+            h.holiday_date
+            for h in get_holidays_for_employee(employee, start_date, last_date, raise_exception=False)
+        }
+
+        range_filter = ["between", [get_datetime(start_date), get_datetime(last_date + timedelta(days=1))]]
+        checkins_by_day = {}
+        for c in frappe.get_all(
+            "Employee Checkin",
+            filters={"employee": employee, "time": range_filter},
+            fields=["time", "log_type"],
+            order_by="time asc",
+        ):
+            checkins_by_day.setdefault(c.time.date(), []).append(c)
+
+        breaks_by_day = {}
+        for b in frappe.get_all(
+            "Employee Break",
+            filters={"employee": employee, "time": range_filter},
+            fields=["time", "log_type"],
+            order_by="time asc",
+        ):
+            breaks_by_day.setdefault(b.time.date(), []).append(b)
+
+        current = start_date
+        while current <= last_date:
+            logs = checkins_by_day.get(current, [])
+            ins = [l.time for l in logs if l.log_type == "IN"]
+            outs = [l.time for l in logs if l.log_type == "OUT"]
+            check_in = ins[0] if ins else None
+            check_out = outs[-1] if outs and (not check_in or outs[-1] > check_in) else None
+
+            status = attendance.get(current)
+            if not status:
+                if logs:
+                    status = "Present"
+                elif current in holidays:
+                    status = "Holiday"
+                else:
+                    status = "Absent"
+
+            if check_in and check_out:
+                net_seconds = _paired_seconds(logs) - _paired_seconds(breaks_by_day.get(current, []))
+                worked_minutes = int(max(net_seconds, 0) // 60)
+            elif check_in:
+                # still checked in / missed check-out
+                worked_minutes = None
+            else:
+                worked_minutes = 0
+
+            if status in ("Present", "Half Day", "Work From Home"):
+                summary["days_worked"] += 1
+            elif status == "On Leave":
+                summary["leave_days"] += 1
+            summary["total_worked_minutes"] += worked_minutes or 0
+
+            days.append({
+                "date": str(current),
+                "status": status,
+                "check_in": str(check_in) if check_in else None,
+                "check_out": str(check_out) if check_out else None,
+                "worked_minutes": worked_minutes,
+            })
+            current += timedelta(days=1)
+
+        return {
+            "employee": employee,
+            "month": month,
+            "year": year,
+            "summary": summary,
+            "days": days,
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_attendance_history API Error")
+        return Response(
+            json.dumps({"error": str(e)}),
+            status=500,
+            mimetype="application/json",
+        )

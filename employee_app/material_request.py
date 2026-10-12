@@ -1012,19 +1012,21 @@ def get_stock(item_code, warehouse, to):
 
 
 @frappe.whitelist(allow_guest=False)
-def create_material_request(date, warehouse, items):
+def create_material_request(date,items,task):
 
 
     try:
+        warehouse = "Stores - M"
 
         if isinstance(items, str):
             items = json.loads(items)
 
         doc = frappe.get_doc({
             "doctype": "Material Request",
-            "material_request_type": "Purchase",
+            "material_request_type": "Material Transfer",
             "transaction_date": date,
             "set_warehouse": warehouse,
+            "custom_task": task,
             "items": []
         })
 
@@ -1047,6 +1049,7 @@ def create_material_request(date, warehouse, items):
             "date": doc.transaction_date,
             "warehouse": doc.set_warehouse,
             "purpose": doc.material_request_type,
+            "task": doc.custom_task,
             "items": [
                 {
                     "item_code": d.item_code,
@@ -1088,13 +1091,13 @@ def list_material_requests(id=None):
             mr_list = frappe.get_all(
                 "Material Request",
                 filters={"name": id},
-                fields=["name", "transaction_date", "set_warehouse", "material_request_type"]
+                fields=["name", "transaction_date", "set_warehouse", "material_request_type", "custom_task"]
             )
         else:
 
             mr_list = frappe.get_all(
                 "Material Request",
-                fields=["name", "transaction_date", "set_warehouse", "material_request_type"],
+                fields=["name", "transaction_date", "set_warehouse", "material_request_type", "custom_task"],
                 order_by="creation desc"
             )
 
@@ -1243,5 +1246,92 @@ def items(search_value=None, pos_profile=None):
         return Response(
             json.dumps({"error": str(e)}),
             status=404,
+            mimetype="application/json"
+        )
+
+
+@frappe.whitelist(allow_guest=True)
+def items_to_request(warehouse=None, item_group=None, show_all=0, limit=None, offset=0):
+    """
+    List item quantities from Bin for the selected or default warehouses.
+    """
+    try:
+        company = frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
+            "Global Defaults", "default_company"
+        )
+        fallback_warehouse = frappe.db.get_single_value("Stock Settings", "default_warehouse")
+
+        conditions = ["i.disabled = 0", "i.is_stock_item = 1", "i.has_variants = 0"]
+        values = {"company": company, "fallback_warehouse": fallback_warehouse, "warehouse": warehouse}
+
+        if item_group:
+            conditions.append("i.item_group = %(item_group)s")
+            values["item_group"] = item_group
+
+        warehouse_expr = (
+            "%(warehouse)s" if warehouse
+            else "COALESCE(idf.default_warehouse, %(fallback_warehouse)s)"
+        )
+
+        rows = frappe.db.sql(f"""
+            SELECT
+                t.item_code, t.item_name, t.uom, t.warehouse,
+                COALESCE(b.actual_qty, 0) AS actual_qty
+            FROM (
+                SELECT
+                    i.name AS item_code, i.item_name, i.stock_uom AS uom, {warehouse_expr} AS warehouse
+                FROM `tabItem` i
+                LEFT JOIN `tabItem Default` idf
+                    ON idf.parent = i.name AND idf.parenttype = 'Item' AND idf.company = %(company)s
+                WHERE {" AND ".join(conditions)}
+            ) t
+            LEFT JOIN `tabBin` b
+                ON b.item_code = t.item_code AND b.warehouse = t.warehouse
+            WHERE t.warehouse IS NOT NULL
+            ORDER BY t.item_name
+        """, values, as_dict=True)
+
+        item_results = []
+        for r in rows:
+            item_results.append({
+                "warehouse": r.warehouse,
+                "item_code": r.item_code,
+                "item_name": r.item_name,
+                "uom": r.uom,
+                "qty": flt(r.actual_qty),
+            })
+
+        offset = cint(offset)
+        if limit:
+            item_results = item_results[offset:offset + cint(limit)]
+        elif offset:
+            item_results = item_results[offset:]
+
+        warehouses = {}
+        for item in item_results:
+            warehouse_items = warehouses.setdefault(item["warehouse"], [])
+            warehouse_items.append({
+                "item_code": item["item_code"],
+                "item_name": item["item_name"],
+                "uom": item["uom"],
+                "qty": item["qty"],
+            })
+
+        result = [
+            {"warehouse": warehouse_name, "items": warehouse_items}
+            for warehouse_name, warehouse_items in warehouses.items()
+        ]
+
+        return Response(
+            json.dumps({"data": result}, default=str),
+            status=200,
+            mimetype="application/json"
+        )
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Items To Request API Error")
+        return Response(
+            json.dumps({"error": str(e)}),
+            status=500,
             mimetype="application/json"
         )

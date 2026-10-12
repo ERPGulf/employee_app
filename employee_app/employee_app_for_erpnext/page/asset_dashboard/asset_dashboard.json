@@ -1,0 +1,26 @@
+{
+ "content": null,
+ "creation": "2026-10-01 11:07:18.059397",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-10-01 11:43:48.110020",
+ "modified_by": "Administrator",
+ "module": "Employee app for ERPNext",
+ "name": "asset-dashboard",
+ "owner": "Administrator",
+ "page_name": "asset-dashboard",
+ "roles": [
+  {
+   "role": "Dashboard Manager"
+  },
+  {
+   "role": "Maintenance Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 1,
+ "title": "Maintenance-Dashboard"
+}
