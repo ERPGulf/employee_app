@@ -1,0 +1,22 @@
+info:
+  name: otp verified
+  type: http
+  seq: 38
+
+http:
+  method: GET
+  url: https://malavika16.erpgulf.com:3045/api/method/employee_app.gauth.verify_otp
+  body:
+    type: form-urlencoded
+    data:
+      - name: otp
+        value: "269043"
+  auth:
+    type: bearer
+    token: SUFlkySPAR07bu0fq6x3Svl6nv2N43
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

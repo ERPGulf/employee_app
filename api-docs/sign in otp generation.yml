@@ -1,0 +1,22 @@
+info:
+  name: sign in otp generation
+  type: http
+  seq: 42
+
+http:
+  method: POST
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.sign_in.sign_in
+  body:
+    type: form-urlencoded
+    data:
+      - name: mobile_no
+        value: "919961343245"
+      - name: password
+        value: Friday2000@A
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

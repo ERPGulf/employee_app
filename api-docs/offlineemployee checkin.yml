@@ -1,0 +1,53 @@
+info:
+  name: offlineemployee checkin
+  type: http
+  seq: 39
+
+http:
+  method: post
+  url: https://malavika16.erpgulf.com:3045//api/method/employee_app.attendance_api.add_offline_employee_checkins
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer l2IOYXIZbl5vF20PxrL7zXPhjn1idM
+    - name: Cookie
+      value: full_name=aysha%20p; sid=Guest; system_user=no; user_id=Guest; user_image=
+  body:
+    type: json
+    data: |-
+      {
+        "logs": [
+          {
+            "employee": "HR-EMP-00003",
+            "timestamp": "2026-07-28 01:00:00",
+            "location": "pmna",
+            "device_id": "Mobile",
+            "log_type": "IN",
+            "over_time": 0
+          },
+          {
+            "employee": "HR-EMP-00003",
+            "timestamp": "2026-07-28 1:15:00",
+            "location": "pmna",
+            "device_id": "Mobile",
+            "log_type": "OUT",
+            "over_time": 1
+          },
+          {
+            "employee": "HR-EMP-00003",
+            "timestamp": "2026-07-28 02:05:00",
+            "location": "pmna",
+            "device_id": "Mobile",
+            "log_type": "IN",
+            "over_time": 0
+          }
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

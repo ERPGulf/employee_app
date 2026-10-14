@@ -10,7 +10,7 @@ http:
     - name: Content-Type
       value: application/x-www-form-urlencoded
     - name: Authorization
-      value: Bearer hDtBIPZHOpnkqvZ5dmr7KIJ1zHwkxL
+      value: Bearer xxxx
   body:
     type: form-urlencoded
     data:
