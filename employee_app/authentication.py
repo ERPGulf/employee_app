@@ -276,7 +276,7 @@ def verify_otp(mobile_no=None, otp=None, password=None):
             _write_custom_password(employee_id, password)
             stored_password = password
 
-        elif password_policy == "Optional":
+        elif password_policy == "Optional" or password_policy == "No":
             # Only save if the caller actually supplied one.
             if password:
                 set_employee_password(employee_id, password)
