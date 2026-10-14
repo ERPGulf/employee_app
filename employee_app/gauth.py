@@ -1,20 +1,56 @@
 import json
 import base64
-import requests
 import frappe
+from datetime import datetime, timedelta
 from werkzeug.wrappers import Response
-from frappe.integrations.oauth2 import get_token
-import frappe
-import json
-from datetime import datetime
-from werkzeug.wrappers import Response
-from frappe.utils import getdate, nowdate
-from frappe.utils import random_string
+from frappe.auth import LoginManager
+from frappe.utils import getdate, nowdate, now_datetime, flt
 from frappe import _
 import re
 import random
 from frappe.utils.password import check_password
 from frappe.utils.password import update_password
+
+
+def _json(data, status):
+    return Response(json.dumps(data), status=status, mimetype="application/json")
+
+
+def _issue_bearer_token(user, client_name, scopes, expires_in=3600):
+    """Create an OAuth Bearer Token in-process (works before and after Frappe 15.122.0)."""
+    access_token = frappe.generate_hash(length=30)
+    refresh_token = frappe.generate_hash(length=30)
+    frappe.get_doc({
+        "doctype": "OAuth Bearer Token",
+        "client": client_name,
+        "user": user,
+        "scopes": scopes,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_in": expires_in,
+        "expiration_time": now_datetime() + timedelta(seconds=expires_in),
+        "status": "Active",
+    }).insert(ignore_permissions=True)
+    frappe.db.commit()
+    return {
+        "access_token": access_token,
+        "token_type": "Bearer",
+        "expires_in": expires_in,
+        "refresh_token": refresh_token,
+        "scope": scopes,
+    }
+
+
+def _authenticate(username, password):
+    """Validate username/password in-process. Returns the user name or None."""
+    try:
+        lm = LoginManager()
+        lm.authenticate(username, password)
+        return lm.user
+    except frappe.AuthenticationError:
+        frappe.clear_messages()
+        return None
+
 
 class GAuth:
     """Authentication handler for employee app token generation and management."""
@@ -46,36 +82,6 @@ class GAuth:
             return (None, None, None)
         except Exception:
             return (None, None, None)
-
-    def _make_token_request(self, url, payload, headers=None):
-        """
-        Make a token request to the OAuth endpoint.
-
-        Args:
-            url: Endpoint URL
-            payload: Request payload data
-            headers: Optional request headers
-
-        Returns:
-            Response object or dict with error information
-        """
-        default_headers = {"Content-Type": "application/json"}
-        if headers:
-            default_headers.update(headers)
-
-
-        try:
-            response = requests.post(url, data=payload, headers=default_headers, files=[])
-
-
-            if response.status_code == 200:
-                return json.loads(response.text)
-            else:
-                frappe.local.response.http_status_code = 401
-                return json.loads(response.text) if response.text else {}
-        except Exception as e:
-            frappe.local.response.http_status_code = 401
-            return {"error": str(e)}
 
     def get_token2(self):
         """Placeholder method for token generation."""
@@ -138,48 +144,18 @@ class GAuth:
         #     )
 
     def generate_custom_token_for_employee(self, password):
-        """
-        Generate custom token for employee using client user credentials.
+        """Generate token for the MobileAPP OAuth client's user."""
+        client = frappe.db.get_value(
+            "OAuth Client", {"app_name": "MobileAPP"}, ["name", "scopes", "user"], as_dict=True
+        )
+        if not client or not client.user:
+            return _json({"message": "OAuth client not found"}, 401)
 
-        Args:
-            password: Employee password
+        user = _authenticate(client.user, password)
+        if not user:
+            return _json({"error": "invalid_grant", "error_description": "Invalid credentials given."}, 401)
 
-        Returns:
-            Response with token or error message
-        """
-        try:
-            client_id, client_secret, client_user = self._get_oauth_client_credentials('MobileAPP')
-
-            if not client_id or not client_user:
-                frappe.local.response.http_status_code = 401
-                return Response(
-                    json.dumps({"message": "OAuth client not found"}),
-                    status=401,
-                    mimetype='application/json'
-                )
-
-            url = f"{self.host_name}/api/method/employee_app.gauth.get_token"
-            payload = {
-                "username": client_user,
-                "password": password,
-                "grant_type": "password",
-                "client_id": client_id,
-                "client_secret": client_secret,
-            }
-
-            result = self._make_token_request(url, payload)
-            return Response(
-                json.dumps(result),
-                status=200 if frappe.local.response.http_status_code != 401 else 401,
-                mimetype='application/json'
-            )
-        except Exception as e:
-            frappe.local.response.http_status_code = 401
-            return Response(
-                json.dumps({"error": str(e)}),
-                status=401,
-                mimetype='application/json'
-            )
+        return _json(_issue_bearer_token(user, client.name, client.scopes), 200)
 
     def whoami(self):
         """
@@ -193,20 +169,6 @@ class GAuth:
         except Exception as e:
             frappe.throw(self.AUTH_ERROR)
 
-
-    def _log_activity(self, subject, status, user=None):
-        """Write a debug entry to Activity Log, swallowing any insert errors."""
-        try:
-            frappe.get_doc({
-                "doctype": "Activity Log",
-                "subject": subject,
-                "user": user or "Guest",
-                "full_name": user or "Guest",
-                "status": status,
-            }).insert(ignore_permissions=True)
-            frappe.db.commit()
-        except Exception as log_err:
-            frappe.log_error(f"Activity Log insert failed: {log_err}", "generate_token_secure: Activity Log Error")
 
     def _send_otp_for_employee(self, user):
         """
@@ -259,7 +221,7 @@ class GAuth:
             )
 
         # Same response whether or not the user exists, to avoid leaking account existence.
-        return otp_info
+        return {"message": "If the account exists, an OTP has been sent."}
 
     def login_with_otp(self, usr, otp, app_key):
         """
@@ -306,231 +268,56 @@ class GAuth:
             )
         client_name, client_scopes = credentials
 
-        try:
-            access_token = random_string(30)
-            refresh_token = random_string(30)
-            expires_in = 3600
+        if not frappe.db.get_value("User", usr, "enabled"):
+            return _json({"message": "Invalid or expired OTP"}, 401)
 
-            frappe.get_doc({
-                "doctype": "OAuth Bearer Token",
-                "client": client_name,
-                "user": usr,
-                "scopes": client_scopes,
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "expires_in": expires_in,
-            }).insert(ignore_permissions=True)
-            frappe.db.commit()
+        try:
+            token = _issue_bearer_token(usr, client_name, client_scopes)
         except Exception as e:
-            frappe.local.response.http_status_code = 500
-            return Response(
-                json.dumps({"message": str(e)}),
-                status=500,
-                mimetype="application/json",
-            )
+            return _json({"message": str(e)}, 500)
 
         employee = frappe.db.get_value("Employee", {"user_id": usr}, "name")
-
-        return Response(
-            json.dumps({
-                "data": {
-                    "access_token": access_token,
-                    "refresh_token": refresh_token,
-                    "token_type": "bearer",
-                    "expires_in": expires_in,
-                    "scope": client_scopes,
-                },
-                "employee": employee,
-            }),
-            status=200,
-            mimetype="application/json",
-        )
+        return _json({"data": token, "employee": employee}, 200)
 
     def generate_token_secure(self, api_key, api_secret, app_key):
-        frappe.log_error(
-            "generate_token_secure: Function Call",
-           f"[generate_token_secure] Called with username: {api_key} and password: {api_secret}"
-        )
+        """Username/password login. Works before and after Frappe 15.122.0."""
+        try:
+            app_name = base64.b64decode(app_key).decode("utf-8")
+        except Exception:
+            return _json({"message": "Security Parameters are not valid", "user_count": 0}, 401)
 
-        self._log_activity(
-            subject=f"[DEBUG] generate_token_secure called | username: {api_key} | password: {api_secret}",
-            status="",
-            user=api_key,
+        client = frappe.db.get_value(
+            "OAuth Client", {"app_name": app_name}, ["name", "scopes"], as_dict=True
         )
+        if not client:
+            return _json({"message": "Security Parameters are not valid", "user_count": 0}, 401)
+
+        user = _authenticate(api_key, api_secret)
+        if not user:
+            return _json({"error": "invalid_grant", "error_description": "Invalid credentials given."}, 401)
 
         try:
-            try:
-                app_key = base64.b64decode(app_key).decode("utf-8")
-
-            except Exception as e:
-                frappe.log_error(
-                    "generate_token_secure: Decode Error",
-                   f"[generate_token_secure] Base64 decode failed | username: {api_key} | error: {str(e)}"
-                )
-                self._log_activity(
-                    subject=f"[DEBUG] Base64 decode failed | username: {api_key} | error: {str(e)}",
-                    status="Failed",
-                    user=api_key,
-                )
-                return Response(
-                    json.dumps(
-                        {"message": "Security Parameters are not valid", "user_count": 0}
-                    ),
-                    status=401,
-                    mimetype="application/json",
-                )
-
-            clientID, clientSecret, clientUser = frappe.db.get_value(
-                "OAuth Client",
-                {"app_name": app_key},
-                ["client_id", "client_secret", "user"],
-            )
-
-            doc = frappe.db.get_value(
-                "OAuth Client",
-                {"app_name": app_key},
-                ["name", "client_id", "client_secret", "user"],
-            )
-
-            if clientID is None:
-                frappe.log_error(
-                    "generate_token_secure: OAuth Client Missing",
-                   f"[generate_token_secure] OAuth client not found | app_key: {app_key} | username: {api_key}"
-                )
-                self._log_activity(
-                    subject=f"[DEBUG] OAuth client not found | app_key: {app_key} | username: {api_key}",
-                    status="Failed",
-                    user=api_key,
-                )
-                return Response(
-                    json.dumps(
-                        {"message": "Security Parameters are not valid", "user_count": 0}
-                    ),
-                    status=401,
-                    mimetype="application/json",
-                )
-
-            client_id = clientID
-            client_secret = clientSecret
-
-            url = (
-                frappe.local.conf.host_name
-                + "/api/method/frappe.integrations.oauth2.get_token"
-            )
-
-
-            payload = {
-                "username": api_key,
-                "password": api_secret,
-                "grant_type": "password",
-                "client_id": client_id,
-                "client_secret": client_secret,
-            }
-            files = []
-            headers = {"Content-Type": "application/json"}
-
-            response = requests.request("POST", url, data=payload, files=files)
-
-            if response.status_code == 200:
-
-                result_data = json.loads(response.text)
-
-                self._log_activity(
-                    subject=f"[DEBUG] Token generated successfully | username: {api_key}",
-                    status="Success",
-                    user=api_key,
-                )
-
-                return Response(
-                    json.dumps({
-                        "data": result_data,
-                    }),
-                    status=200,
-                    mimetype="application/json",
-                )
-
-            else:
-                frappe.log_error(
-                    "generate_token_secure: Token Request Failed",
-                    f"[generate_token_secure] Token request failed | username: {api_key} | HTTP {response.status_code} | response: {response.text}"
-                )
-                self._log_activity(
-                    subject=f"[DEBUG] Token request failed | username: {api_key} | HTTP {response.status_code} | response: {response.text}",
-                    status="Failed",
-                    user=api_key,
-                )
-                frappe.local.response.http_status_code = 401
-                return json.loads(response.text)
-
+            return _json({"data": _issue_bearer_token(user, client.name, client.scopes)}, 200)
         except Exception as e:
-            frappe.log_error(
-                "generate_token_secure: Exception"
-                f"[generate_token_secure] Unhandled exception | username: {api_key} | error: {str(e)}",
-            )
-            self._log_activity(
-                subject=f"[DEBUG] Unhandled exception | username: {api_key} | error: {str(e)}",
-                status="Failed",
-                user=api_key,
-            )
-            return Response(
-                json.dumps({"message": str(e), "user_count": 0}),
-                status=500,
-                mimetype="application/json",
-            )
-
+            frappe.log_error(title="generate_token_secure: token insert failed", message=str(e))
+            return _json({"message": "Could not issue token", "user_count": 0}, 500)
 
     def create_refresh_token(self, refresh_token):
-        """
-        Create a new access token using a refresh token.
-
-        Args:
-            refresh_token: Refresh token string
-
-        Returns:
-            Response with new token data or error message
-        """
-        url = f"{self.host_name}/api/method/frappe.integrations.oauth2.get_token"
-
-        payload = f"grant_type=refresh_token&refresh_token={refresh_token}"
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        """Revoke the old token and issue a new one, in-process."""
+        old = frappe.db.get_value(
+            "OAuth Bearer Token",
+            {"refresh_token": refresh_token, "status": "Active"},
+            ["name", "client", "user", "scopes"],
+            as_dict=True,
+        )
+        if not old or not frappe.db.get_value("User", old.user, "enabled"):
+            return _json({"data": "invalid_grant"}, 401)
 
         try:
-            response = requests.post(url, headers=headers, data=payload, files=[])
-
-            if response.status_code == 200:
-                try:
-                    message_json = json.loads(response.text)
-                    new_message = {
-                        "access_token": message_json["access_token"],
-                        "expires_in": message_json["expires_in"],
-                        "token_type": message_json["token_type"],
-                        "scope": message_json["scope"],
-                        "refresh_token": message_json["refresh_token"],
-                    }
-
-                    return Response(
-                        json.dumps({"data": new_message}),
-                        status=200,
-                        mimetype="application/json",
-                    )
-                except json.JSONDecodeError as e:
-                    return Response(
-                        json.dumps({"data": f"Error decoding JSON: {e}"}),
-                        status=401,
-                        mimetype="application/json",
-                    )
-            else:
-                return Response(
-                    json.dumps({"data": response.text}),
-                    status=401,
-                    mimetype="application/json"
-                )
+            frappe.db.set_value("OAuth Bearer Token", old.name, "status", "Revoked")
+            return _json({"data": _issue_bearer_token(old.user, old.client, old.scopes)}, 200)
         except Exception as e:
-            return Response(
-                json.dumps({"data": f"Error: {str(e)}"}),
-                status=500,
-                mimetype="application/json"
-            )
+            return _json({"data": f"Error: {str(e)}"}, 500)
 
 
 # Create a singleton instance
