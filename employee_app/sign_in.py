@@ -260,10 +260,8 @@ def sign_in_api(mobile_no=None, otp=None, password=None, login_type="sign_in"):
         elif password_policy != "Mandatory" and not _verify_password(employee_user_id, password):
             update_password(employee_user_id, password)
             _update_user_created_password_flag(employee_id, password)
-            # issue_oauth_tokens_for_app makes its own HTTP request to this
-            # site's token endpoint — a separate request/DB connection — to
-            # mint the token. Without committing here first, that request
-            # can't see the password we just wrote and the OAuth grant fails.
+            # Commit the new password before issue_oauth_tokens_for_app
+            # checks it and issues the token.
             frappe.db.commit()
 
         # ── Verified — issue access + refresh token ──────────────────────────
@@ -429,14 +427,6 @@ def _issue_sign_in_token(employee, employee_id, employee_mobile, password_policy
     if not client_secret:
         return Response(
             json.dumps({"status": "error", "message": "Client secret missing in OAuth Client"}),
-            status=500,
-            mimetype="application/json"
-        )
-
-    host_name = frappe.local.conf.get("host_name")
-    if not host_name:
-        return Response(
-            json.dumps({"status": "error", "message": "host_name missing in site config"}),
             status=500,
             mimetype="application/json"
         )

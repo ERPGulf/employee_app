@@ -3,11 +3,12 @@ import random
 import re
 import base64
 import frappe
-import requests
 from frappe import _
 from frappe.utils import now_datetime
 from frappe.utils.password import check_password, update_password
 from werkzeug.wrappers import Response
+
+from employee_app.gauth import _authenticate, _issue_bearer_token
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -461,14 +462,6 @@ def sign_up_api(mobile_no=None, otp=None, password=None):
                 mimetype="application/json"
             )
 
-        host_name = frappe.local.conf.get("host_name")
-        if not host_name:
-            return Response(
-                json.dumps({"status": "error", "message": "host_name missing in site config"}),
-                status=500,
-                mimetype="application/json"
-            )
-
         app_key = base64.b64encode(app_name.encode()).decode("utf-8")
 
         # ── STEP 6: Issue the OAuth2 token via the shared helper ────────────
@@ -637,78 +630,38 @@ def refresh_employee_token(refresh_token):
             mimetype="application/json",
         )
 
-    host_name = frappe.local.conf.get("host_name")
-    if not host_name:
-        return Response(
-            json.dumps({
-                "status": "error",
-                "message": "Server configuration error: host_name missing",
-            }),
-            status=500,
-            mimetype="application/json",
-        )
-
     try:
-        token_url = f"{host_name}/api/method/frappe.integrations.oauth2.get_token"
-
-        payload = f"grant_type=refresh_token&refresh_token={refresh_token}"
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
-
-        token_response = requests.post(
-            token_url,
-            headers=headers,
-            data=payload,
-            timeout=30
+        # Done in-process: revoke the old token and issue a new pair, instead
+        # of calling Frappe's oauth2.get_token endpoint over HTTP.
+        old = frappe.db.get_value(
+            "OAuth Bearer Token",
+            {"refresh_token": refresh_token, "status": "Active"},
+            ["name", "client", "user", "scopes"],
+            as_dict=True,
         )
-
-        if token_response.status_code == 200:
-            try:
-                message_json = token_response.json()
-                new_token_data = {
-                    "access_token": message_json["access_token"],
-                    "expires_in": message_json["expires_in"],
-                    "token_type": message_json["token_type"],
-                    "scope": message_json["scope"],
-                    "refresh_token": message_json["refresh_token"],
-                }
-                return Response(
-                    json.dumps({
-                        "status": "success",
-                        "data": {
-                            "token": new_token_data,
-                            "time": str(frappe.utils.now_datetime()),
-                        }
-                    }),
-                    status=200,
-                    mimetype="application/json",
-                )
-            except (json.JSONDecodeError, KeyError) as e:
-                return Response(
-                    json.dumps({
-                        "status": "error",
-                        "message": f"Error parsing token response: {str(e)}",
-                    }),
-                    status=500,
-                    mimetype="application/json",
-                )
-        else:
+        if not old or not frappe.db.get_value("User", old.user, "enabled"):
             return Response(
                 json.dumps({
                     "status": "error",
                     "message": "Invalid or expired refresh token",
-                    "detail": token_response.text,
+                    "detail": {"error": "invalid_grant"},
                 }),
                 status=401,
                 mimetype="application/json",
             )
 
-    except requests.exceptions.Timeout:
+        frappe.db.set_value("OAuth Bearer Token", old.name, "status", "Revoked")
+        new_token_data = _issue_bearer_token(old.user, old.client, old.scopes)
+
         return Response(
             json.dumps({
-                "status": "error",
-                "message": "Token server timed out",
+                "status": "success",
+                "data": {
+                    "token": new_token_data,
+                    "time": str(frappe.utils.now_datetime()),
+                }
             }),
-            status=504,
+            status=200,
             mimetype="application/json",
         )
 
@@ -798,14 +751,14 @@ def set_employee_password(employee_id=None, password=None):
 def issue_oauth_tokens_for_app(app_key, employee_id,password):
     """
     Decode app_key, resolve the matching OAuth Client, load the employee's
-    own login credentials (Employee.user_id / Employee.custom_password) and
-    request an OAuth2 password-grant token from this site's own
-    /api/method/frappe.integrations.oauth2.get_token endpoint.
+    own login user (Employee.user_id), check the password in-process and
+    create an OAuth Bearer Token directly (Frappe no longer supports the
+    OAuth password grant through oauth2.get_token).
 
     Returns a 2-tuple:
-        (None, token_json)        on success — token_json is the raw dict
-                                   returned by the OAuth2 endpoint
-                                   (access_token, refresh_token, etc.)
+        (None, token_json)        on success — token_json is a dict with
+                                   access_token, token_type, expires_in,
+                                   refresh_token and scope
         (error_response, None)    on failure — error_response is a ready-to
                                    -return werkzeug Response; just
                                    `return error_response` from the caller.
@@ -861,11 +814,11 @@ def issue_oauth_tokens_for_app(app_key, employee_id,password):
     oauth_client = frappe.db.get_value(
         "OAuth Client",
         {"app_name": decoded_app_key},
-        ["name", "client_id", "client_secret", "user"],
+        ["name", "scopes"],
         as_dict=True,
     )
 
-    if not oauth_client or not oauth_client.get("client_id"):
+    if not oauth_client:
         return Response(
             json.dumps({
                 "status": "error",
@@ -876,65 +829,39 @@ def issue_oauth_tokens_for_app(app_key, employee_id,password):
             mimetype="application/json",
         ), None
 
-    # ── STEP 3: Validate host_name config ───────────────────────────────────
-    host_name = frappe.local.conf.get("host_name")
-    if not host_name:
+    # ── STEP 3: Check the password in-process ───────────────────────────────
+    # Frappe no longer supports the OAuth password grant, so the password is
+    # checked here and the token created directly instead of calling
+    # frappe.integrations.oauth2.get_token over HTTP.
+    user = _authenticate(username, password)
+    if not user:
         return Response(
             json.dumps({
                 "status": "error",
-                "message": "Server configuration error: host_name missing",
+                "message": "Invalid credentials or unauthorized",
+                "detail": {
+                    "error": "invalid_grant",
+                    "error_description": "Invalid credentials given.",
+                },
+            }),
+            status=401,
+            mimetype="application/json",
+        ), None
+
+    # ── STEP 4: Issue the token ─────────────────────────────────────────────
+    try:
+        return None, _issue_bearer_token(user, oauth_client.name, oauth_client.scopes)
+    except Exception as e:
+        frappe.log_error(title="issue_oauth_tokens_for_app: token insert failed", message=str(e))
+        return Response(
+            json.dumps({
+                "status": "error",
+                "message": "Could not issue token",
                 "user_count": 0,
             }),
             status=500,
             mimetype="application/json",
         ), None
-
-    # ── STEP 4: Request token from Frappe OAuth2 endpoint ───────────────────
-    token_url = f"{host_name}/api/method/frappe.integrations.oauth2.get_token"
-
-    payload = {
-        "username": username,
-        "password": password,
-        "grant_type": "password",
-        "client_id": oauth_client["client_id"],
-        "client_secret": oauth_client["client_secret"],
-    }
-
-    try:
-        token_response = requests.post(
-            token_url,
-            data=payload,
-            headers={"Accept": "application/json"},
-            timeout=30,
-        )
-    except requests.exceptions.Timeout:
-        return Response(
-            json.dumps({
-                "status": "error",
-                "message": "Token server timed out",
-                "user_count": 0,
-            }),
-            status=504,
-            mimetype="application/json",
-        ), None
-
-    if token_response.status_code == 200:
-        return None, token_response.json()
-
-    try:
-        detail = token_response.json()
-    except Exception:
-        detail = token_response.text
-
-    return Response(
-        json.dumps({
-            "status": "error",
-            "message": "Invalid credentials or unauthorized",
-            "detail": detail,
-        }),
-        status=401,
-        mimetype="application/json",
-    ), None
 
 @frappe.whitelist(allow_guest=True)
 def master_token():
@@ -959,19 +886,14 @@ def master_token():
                     mimetype="application/json",
                 )
 
-            clientID, clientSecret, clientUser = frappe.db.get_value(
+            client = frappe.db.get_value(
                 "OAuth Client",
                 {"app_name": app_key},
-                ["client_id", "client_secret", "user"],
+                ["name", "scopes"],
+                as_dict=True,
             )
 
-            doc = frappe.db.get_value(
-                "OAuth Client",
-                {"app_name": app_key},
-                ["name", "client_id", "client_secret", "user"],
-            )
-
-            if clientID is None:
+            if not client:
 
                 return Response(
                     json.dumps(
@@ -981,45 +903,25 @@ def master_token():
                     mimetype="application/json",
                 )
 
-            client_id = clientID
-            client_secret = clientSecret
-
-            url = (
-                frappe.local.conf.host_name
-                + "/api/method/frappe.integrations.oauth2.get_token"
-            )
-
-
-            payload = {
-                "username": api_key,
-                "password": api_secret,
-                "grant_type": "password",
-                "client_id": client_id,
-                "client_secret": client_secret,
-            }
-            files = []
-            headers = {"Content-Type": "application/json"}
-
-            response = requests.request("POST", url, data=payload, files=files)
-
-            if response.status_code == 200:
-
-                result_data = json.loads(response.text)
-
-
-
+            # Password checked and token created in-process — Frappe no longer
+            # supports the OAuth password grant via oauth2.get_token.
+            user = _authenticate(api_key, api_secret)
+            if not user:
                 return Response(
-                    json.dumps({
-                        "data": result_data,
-                    }),
-                    status=200,
+                    json.dumps(
+                        {"error": "invalid_grant", "error_description": "Invalid credentials given."}
+                    ),
+                    status=401,
                     mimetype="application/json",
                 )
 
-            else:
-
-                frappe.local.response.http_status_code = 401
-                return json.loads(response.text)
+            return Response(
+                json.dumps({
+                    "data": _issue_bearer_token(user, client.name, client.scopes),
+                }),
+                status=200,
+                mimetype="application/json",
+            )
 
         except Exception as e:
             return Response(
