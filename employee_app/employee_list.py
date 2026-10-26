@@ -241,3 +241,46 @@ def add_employee_app_log(employee: str = None, date: str = None, json_data=None,
             status=500,
             mimetype="application/json",
         )
+
+
+@frappe.whitelist()
+def list_user_roles_and_permissions(user: str = None):
+    """List roles assigned to the logged-in user (or a given user, System Manager only)"""
+    try:
+        session_user = frappe.session.user
+        user = user or session_user
+
+        if user != session_user and "System Manager" not in frappe.get_roles(session_user):
+            return Response(
+                json.dumps({"error": "Not permitted to view another user's roles"}),
+                status=403,
+                mimetype="application/json",
+            )
+
+        if not frappe.db.exists("User", user):
+            return Response(
+                json.dumps({"error": "User not found"}),
+                status=404,
+                mimetype="application/json",
+            )
+
+        roles = frappe.get_all(
+            "Has Role",
+            filters={"parent": user, "parenttype": "User"},
+            pluck="role",
+            order_by="role asc",
+        )
+
+        return Response(
+            json.dumps({"data": {"user": user, "roles": roles}}),
+            status=200,
+            mimetype="application/json",
+        )
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "list_user_roles_and_permissions API Error")
+        return Response(
+            json.dumps({"error": str(e)}),
+            status=500,
+            mimetype="application/json",
+        )

@@ -19,7 +19,7 @@ from frappe.utils import getdate, get_time, flt, now_datetime
 
 from frappe.utils import cint
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def warehouse_list(employee_code=None):
     """
     Returns a list of warehouses.
@@ -51,7 +51,7 @@ def warehouse_list(employee_code=None):
         )
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_items(item_code=None, uom=None, barcode=None, warehouse=None):
     try:
 
@@ -126,7 +126,7 @@ def get_items(item_code=None, uom=None, barcode=None, warehouse=None):
         )
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def create_stock_entry(item_id, date_time, warehouse, uom, qty, employee, branch=None, barcode=None, shelf=None):
     try:
         date_only = getdate(date_time)
@@ -279,7 +279,7 @@ def create_stock_entry(item_id, date_time, warehouse, uom, qty, employee, branch
 
 from datetime import date
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def list_stock_entries(warehouse=None, item_code=None, today_only=False):
     """
     Returns a list of Warehouse Stock Log entries, optionally filtered by warehouse, item_code, and today's date.
@@ -331,7 +331,7 @@ def list_stock_entries(warehouse=None, item_code=None, today_only=False):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def update_stock_entry(entry_id, warehouse=None, barcode=None, shelf=None, date=None, item_code=None, uom=None, qty=None):
     """
     Updates a Warehouse Stock Log entry by entry_id.
@@ -384,7 +384,7 @@ def update_stock_entry(entry_id, warehouse=None, barcode=None, shelf=None, date=
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def delete_stock_entry(entry_id):
     """
     Deletes a Warehouse Stock Log entry by entry_id.
@@ -408,7 +408,7 @@ def delete_stock_entry(entry_id):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def list_items(item_group=None, last_updated_time=None, pos_profile = None):
 
 
@@ -994,7 +994,7 @@ def create_stock_reconciliation_doc(entries):
     return ", ".join(created_reconciliations)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_stock(item_code, warehouse, to):
     return frappe.db.sql(
         """
@@ -1143,7 +1143,7 @@ def list_material_requests(id=None):
             mimetype="application/json"
         )
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def items(search_value=None, pos_profile=None):
     """
     Fetch a single item by matching search_value against item code, item name,
@@ -1250,7 +1250,7 @@ def items(search_value=None, pos_profile=None):
         )
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def items_to_request(warehouse=None, item_group=None, show_all=0, limit=None, offset=0):
     """
     List item quantities from Bin for the selected or default warehouses.
