@@ -1242,8 +1242,9 @@ def get_leave_type(employee: str):
 
 
 @frappe.whitelist()
-def get_notification(employee):
-
+def get_notification():
+    user=frappe.session.user
+    employee = frappe.get_value("Employee", {"user_id": user}, "name")
     notification_names = frappe.get_all(
         "Employee Table",
         filters={"employee": employee},

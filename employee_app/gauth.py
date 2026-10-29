@@ -967,12 +967,11 @@ def employee_checkin_setting():
         data = {
             "attendance_action": {
                 "offline_attendance": bool(settings.offline_attendance),
-                "offline_attendance_version": settings.offline_attendance_version,
                 "photo_upload": bool(settings.photo_upload),
                 "restrict_location": bool(settings.restrict_location),
                 "unrestricted_checkout_location": bool(settings.unrestricted_checkout_location),
                 "employee_shift": bool(settings.employee_shift),
-                "geo_tagging": GEO_TAGGING_OPTIONS.get(settings.geo_tagging, 0),
+                "geo_tagging": bool(settings.geo_tagging),
                 "employee_checkin_break": bool(settings.employee_checkin_break),
                 "attendance_request": bool(settings.attendance_request),
                 "attendance_history": bool(settings.attendance_history)
