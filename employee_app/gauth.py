@@ -359,13 +359,13 @@ def generate_token_secure(api_key, api_secret, app_key):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def request_login_otp(usr):
     """Send a login OTP for the given user id (no password required)."""
     return _gauth_instance.request_login_otp(usr)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def login_with_otp(usr, otp, app_key):
     """Verify a login OTP and issue an OAuth bearer token."""
     return _gauth_instance.login_with_otp(usr, otp, app_key)
