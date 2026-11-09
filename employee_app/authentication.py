@@ -13,6 +13,7 @@ from employee_app.auth_core import (
     is_privileged,
     issue_app_tokens,
     log_failure,
+    erp_password_setup_allowed,
     password_setup_allowed,
     password_too_weak,
     rotate_refresh_token,
@@ -69,6 +70,8 @@ def get_employee_login_policy(mobile=None):
                 # The app offers Create / Reset password only on true. create_new_password
                 # enforces the same rule again when it changes the password.
                 "otp_verified_password_setup": password_setup_allowed(employee),
+                # Separate offer for OTP-only employees: a password for the ERP website.
+                "erp_web_password_setup_allowed": erp_password_setup_allowed(employee),
             }),
             status=200, mimetype="application/json",
         )
@@ -281,7 +284,7 @@ def sign_up_api(mobile_no=None, otp=None, password=None):
 
         # ── STEP 2: Validate inputs against the sign-up policy before the
         # OTP is consumed, so a rejected request doesn't burn the OTP.
-        if not password:
+        if not password or not isinstance(password, str):
             return Response(
                 json.dumps({
                     "status":  "error",

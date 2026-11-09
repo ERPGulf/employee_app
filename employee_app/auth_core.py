@@ -5,6 +5,7 @@ mobile lookup, OTPs, password checks with lockout, and token issue. Never log or
 return OTPs, passwords, tokens or mobile numbers.
 """
 
+import base64
 import hashlib
 import hmac
 import json
@@ -245,7 +246,7 @@ def verify_password(employee, user, password):
     from employee_app.authentication import is_placeholder_password
 
     _check_lock(employee)
-    if not password or is_placeholder_password(password):
+    if not isinstance(password, str) or not password or is_placeholder_password(password):
         return False
     try:
         check_password(user, password)
@@ -265,28 +266,57 @@ def password_too_weak(user, password):
 
 
 def password_setup_allowed(emp):
-    """The one rule for OTP-verified password setup.
+    """Mobile in-app setup, for employees whose mobile policy uses a password.
 
     get_employee_login_policy reports it to the app as otp_verified_password_setup,
     and create_new_password checks it again when it changes the password.
+    Tenant switch: allow_in_app_password_setup.
     """
+    from employee_app.authentication import get_login_policies
+
+    return bool(
+        _setting("allow_in_app_password_setup")
+        and get_login_policies(emp)["sign_in_policy"]["password_policy"] != "No"
+        and _otp_may_set_password(emp)
+    )
+
+
+def erp_password_setup_allowed(emp):
+    """Setup of the ERP website password for OTP-only employees, whose mobile policy
+    never asks for one. Their mobile policy stays OTP.
+
+    Reported as erp_web_password_setup_allowed; create_new_password checks it again.
+    Tenant switch: allow_erp_password_setup.
+    """
+    from employee_app.authentication import get_login_policies
+
+    return bool(
+        _setting("allow_erp_password_setup")
+        and get_login_policies(emp)["sign_in_policy"]["password_policy"] == "No"
+        and _otp_may_set_password(emp)
+    )
+
+
+def _otp_may_set_password(emp):
+    """Whom an OTP may set a password for at all, whichever channel offers it."""
     from employee_app.authentication import AUTH_BOTH, get_login_policies
 
     user = emp.get("user_id")
-    policies = get_login_policies(emp)
     return bool(
-        # get_singles_dict, unlike get_single_value, doesn't throw before migrate adds the field.
-        cint(frappe.db.get_singles_dict("Checkin App Setting").get("allow_in_app_password_setup"))
-        and emp.get("status") == "Active"
+        emp.get("status") == "Active"
         and emp.get("custom_employee_has_signed_up")
         and user
         and frappe.db.get_value("User", user, "enabled")
-        and policies["sign_in_policy"]["password_policy"] != "No"
         # Both mode keeps two factors: an OTP may create the first password, never replace one.
-        and not (policies["authentication"] == AUTH_BOTH and emp.get("custom_user_created_password"))
+        and not (get_login_policies(emp)["authentication"] == AUTH_BOTH and emp.get("custom_user_created_password"))
         and not is_privileged(user)
         and not _testing_mode()
     )
+
+
+def _setting(field):
+    # get_singles_dict, unlike get_single_value, doesn't throw before migrate adds the field.
+    return cint(frappe.db.get_singles_dict("Checkin App Setting").get(field))
 
 
 def is_privileged(user):
@@ -309,11 +339,22 @@ def issue_app_tokens(user):
 
     if not frappe.db.get_value("User", user, "enabled"):
         return None
-    # ponytail: the first OAuth Client, as sign-in has always used; pin it to Checkin App Setting.app_key if a site has several.
-    client = frappe.db.get_value("OAuth Client", {}, ["name", "scopes"], as_dict=True)
+    client = _app_oauth_client()
     if not client:
         frappe.throw("No OAuth Client found")
     return _issue_bearer_token(user, client.name, client.scopes)
+
+
+def _app_oauth_client():
+    """The OAuth Client the app signs in with (Checkin App Setting.app_key, as
+    master_token uses), else the site's first one, as sign-in always used."""
+    fields = ["name", "scopes"]
+    try:
+        app_name = base64.b64decode(frappe.db.get_single_value("Checkin App Setting", "app_key") or "").decode()
+    except ValueError:
+        app_name = None
+    pinned = app_name and frappe.db.get_value("OAuth Client", {"app_name": app_name}, fields, as_dict=True)
+    return pinned or frappe.db.get_value("OAuth Client", {}, fields, as_dict=True)
 
 
 def revoke_tokens(user):
@@ -361,6 +402,14 @@ def on_employee_security_change(doc, method=None):
     if tightened or inactive:
         revoke_tokens(doc.user_id)
         auth_event("tokens_revoked", doc.name, reason="high_security_on" if tightened else "not_active")
+
+
+def on_user_disabled(doc, method=None):
+    """User on_update: Frappe logs a disabled user out of Desk; end their OAuth sessions too
+    (bearer tokens are not checked against User.enabled)."""
+    if not doc.enabled and doc.has_value_changed("enabled"):
+        revoke_tokens(doc.name)
+        auth_event("tokens_revoked", user=doc.name, reason="user_disabled")
 
 
 # ── The shared service token stays on the pre-login methods ──────────────────

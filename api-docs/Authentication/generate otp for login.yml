@@ -39,21 +39,6 @@ docs: |2-
 
       ## Response
 
-      Success (testing mode — OTP returned directly):
-      ```json
-      {
-        "status": "success",
-        "message": "OTP sent successfully",
-        "employee_id": "HR-EMP-00003",
-        "policy": {
-          "password_policy": "Mandatory",
-          "otp_policy": "Mandatory"
-        },
-        "employee_has_existing_password": false,
-        "otp_expires_in": 300
-      }
-      ```
-
       Success (live mode — OTP sent via WhatsApp, not returned):
       ```json
       {
@@ -95,6 +80,6 @@ docs: |2-
 
       ## Notes
       - The OTP is cached against the employee's mobile number for 5 minutes (`otp_expires_in`: 300).
-      - When `Whatsapp Saudi.testing` is enabled, the fixed `testing_otp` value is used instead of a random OTP and is returned directly in the response instead of being sent via WhatsApp.
-      - `employee_has_existing_password` (testing mode only) indicates whether the employee has already set their own password via `sign up`.
+      - OTPs are random, never returned or logged, and stored only as a keyed hash. Only on developer-mode sites, `employee_app_test_otp` in site_config.json fixes the code and skips WhatsApp, for automated tests.
+      - Limits: 1 send per minute and 5 per hour per employee: HTTP 429 `{"status": "error", "message": "Too many attempts. Try again later."}`.
       - Use the returned `policy.otp_policy` / `policy.password_policy` to decide whether `sign up` or `sign in api` needs an OTP and/or password next.

@@ -170,6 +170,9 @@ class GAuth:
 
     def generate_token_secure(self, api_key, api_secret, app_key):
         """Username/password login. Works before and after Frappe 15.122.0."""
+        # Only plain strings: other JSON types would reach the user lookup as filter operators.
+        if not all(isinstance(value, str) for value in (api_key, api_secret, app_key)):
+            return _json({"error": "invalid_grant", "error_description": "Invalid credentials given."}, 401)
         try:
             app_name = base64.b64decode(app_key).decode("utf-8")
         except Exception:
@@ -615,15 +618,18 @@ def create_new_password(mobile_no=None, otp=None, new_password=None):
     Set the login password of the Employee matched exactly by mobile_no,
     after the OTP sent by authentication.generate_and_send_otp(mobile_no).
 
-    Allowed only while auth_core.password_setup_allowed holds for that
-    employee at this moment — the rule get_employee_login_policy reports as
-    otp_verified_password_setup. It is the employee's ERP website password
-    too. The employee's Authentication policy never changes here; their other
-    sessions end. Replies are nested under "data" (frozen contract).
+    Allowed only while one of the setup rules holds for that employee at this
+    moment, as get_employee_login_policy reports them: password_setup_allowed
+    (otp_verified_password_setup, the mobile app) or erp_password_setup_allowed
+    (erp_web_password_setup_allowed, OTP-only employees' ERP password). The
+    password is the employee's ERP website password too. The employee's
+    Authentication policy never changes here; their other sessions end.
+    Replies are nested under "data" (frozen contract).
     """
     from employee_app.auth_core import (
         TOO_MANY,
         auth_event,
+        erp_password_setup_allowed,
         find_employee,
         log_failure,
         password_setup_allowed,
@@ -640,7 +646,7 @@ def create_new_password(mobile_no=None, otp=None, new_password=None):
     try:
         throttle_ip("set_password")
 
-        if not mobile_no or not otp or not new_password:
+        if not mobile_no or not otp or not new_password or not isinstance(new_password, str):
             return refuse("mobile_no, otp and new_password are required", 400)
 
         if is_placeholder_password(new_password):
@@ -653,7 +659,7 @@ def create_new_password(mobile_no=None, otp=None, new_password=None):
         # Row lock until commit: one setup per employee at a time, and the rule
         # below reads current data.
         employee = frappe.get_doc("Employee", found.name, for_update=True)
-        if not password_setup_allowed(employee):
+        if not (password_setup_allowed(employee) or erp_password_setup_allowed(employee)):
             return refuse("Password setup is not available", 403)
 
         # Frappe's password policy, when the site enables it. Reuses the message the app already maps.

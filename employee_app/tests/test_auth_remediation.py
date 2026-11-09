@@ -2,6 +2,7 @@
 # and employee_app installed, and Redis:
 #   bench --site <test-site> run-tests --module employee_app.tests.test_auth_remediation
 
+import base64
 import json
 import random
 from unittest.mock import patch
@@ -69,6 +70,7 @@ class AuthTestCase(FrappeTestCase):
         frappe.cache().delete_keys("employee_app:auth:")
         frappe.set_user("Administrator")
         frappe.db.set_single_value("Checkin App Setting", "allow_in_app_password_setup", 1)
+        frappe.db.set_single_value("Checkin App Setting", "allow_erp_password_setup", 0)
 
     def make(self, authentication="Password Authentication", signed_up=1, own_password=0,
              high_security=0, mobile=None, password=LEGACY, roles=("Employee",)):
@@ -149,6 +151,19 @@ class TestPolicyPromise(AuthTestCase):
         for label, (emp, expected) in cases.items():
             self.assertEqual(self.policy(emp), expected, label)
 
+    def test_erp_offer_is_separate_and_off_by_default(self):
+        otp_only = self.make("OTP Authentication")
+        body = reply(get_employee_login_policy(mobile=otp_only.mobile))[1]
+        self.assertIs(body["erp_web_password_setup_allowed"], False)
+        frappe.db.set_single_value("Checkin App Setting", "allow_erp_password_setup", 1)
+        body = reply(get_employee_login_policy(mobile=otp_only.mobile))[1]
+        self.assertIs(body["erp_web_password_setup_allowed"], True)
+        self.assertIs(body["otp_verified_password_setup"], False)  # the mobile offer stays for password policies
+        password_user = self.make("Password Authentication")
+        self.assertIs(reply(get_employee_login_policy(mobile=password_user.mobile))[1]["erp_web_password_setup_allowed"], False)
+        admin = self.make("OTP Authentication", roles=("Employee", "System Manager"))
+        self.assertIs(reply(get_employee_login_policy(mobile=admin.mobile))[1]["erp_web_password_setup_allowed"], False)
+
     def test_switch_off_withdraws_the_promise(self):
         emp = self.make()
         frappe.db.set_single_value("Checkin App Setting", "allow_in_app_password_setup", 0)
@@ -199,6 +214,29 @@ class TestPasswordSetup(AuthTestCase):
         self.assertEqual(status, 403)
         status, _ = reply(sign_in_api(mobile_no=emp.mobile, otp=code, password="egf_Device1"))
         self.assertEqual(status, 200)
+
+    def test_otp_only_employee_sets_an_erp_password_and_keeps_otp_sign_in(self):
+        emp = self.make("OTP Authentication")
+        code = self.otp(emp)
+        self.assertEqual(reply(create_new_password(mobile_no=emp.mobile, otp=code, new_password="Erp#Only-Pass9"))[0], 403)
+        frappe.db.set_single_value("Checkin App Setting", "allow_erp_password_setup", 1)
+        status, body = reply(create_new_password(mobile_no=emp.mobile, otp=code, new_password="Erp#Only-Pass9"))
+        self.assertEqual((status, body["data"]["employee_id"]), (200, emp.name))
+        self.assertTrue(can_log_in(emp.user, "Erp#Only-Pass9"))
+        self.assertFalse(can_log_in(emp.user, LEGACY))
+        self.assertEqual(frappe.db.get_value("Employee", emp.name, "custom_authentication"), "OTP Authentication")
+        frappe.cache().delete_keys("employee_app:auth:")  # allow a new OTP within the minute
+        self.assertEqual(reply(sign_in_api(mobile_no=emp.mobile, otp=self.otp(emp), password="egf_Dev9"))[0], 200)
+        self.assertTrue(can_log_in(emp.user, "Erp#Only-Pass9"))  # OTP sign-in left the ERP password alone
+
+    def test_malformed_password_input_is_refused_before_the_otp(self):
+        emp = self.make()
+        code = self.otp(emp)
+        self.assertEqual(reply(create_new_password(mobile_no=emp.mobile, otp=code, new_password=["N3w-Strong#Pass"]))[0], 400)
+        self.assertEqual(reply(create_new_password(mobile_no=emp.mobile, otp=code, new_password="N3w-Strong#Pass"))[0], 200)
+        signed_in = self.make(own_password=1, password=CHOSEN)
+        status, body = reply(sign_in_api(mobile_no=signed_in.mobile, password=[CHOSEN]))
+        self.assertEqual((status, body["message"]), (401, "Invalid password"))
 
     def test_one_otp_sets_one_password(self):
         emp = self.make()
@@ -330,6 +368,32 @@ class TestSessions(AuthTestCase):
         employee.custom_high_security = 1
         employee.save()
         self.assertEqual(self.token_status(token), "Revoked")
+
+    def test_disabling_the_user_ends_sessions(self):
+        emp = self.make()
+        token = self.tokens(emp)
+        user = frappe.get_doc("User", emp.user)
+        user.enabled = 0
+        user.save()
+        self.assertEqual(self.token_status(token), "Revoked")
+
+    def test_tokens_use_the_apps_oauth_client(self):
+        frappe.get_doc({"doctype": "OAuth Client", "app_name": "OtherIntegration", "scopes": "all",
+                        "default_redirect_uri": "http://localhost"}).insert(ignore_permissions=True)  # now the newest
+        frappe.db.set_single_value("Checkin App Setting", "app_key", base64.b64encode(b"AuthTestApp").decode())
+        token = self.tokens(self.make())
+        self.assertEqual(frappe.db.get_value("OAuth Bearer Token", token["access_token"], "client"),
+                         frappe.db.get_value("OAuth Client", {"app_name": "AuthTestApp"}, "name"))
+
+    def test_password_login_refuses_non_string_credentials(self):
+        from employee_app.gauth import generate_token_secure
+
+        emp = self.make(own_password=1, password=CHOSEN)
+        app_key = base64.b64encode(b"AuthTestApp").decode()
+        for user in ([emp.user], {"name": emp.user}, 0):
+            status, body = reply(generate_token_secure(api_key=user, api_secret=CHOSEN, app_key=app_key))
+            self.assertEqual(status, 401)
+            self.assertNotIn("access_token", json.dumps(body))
 
     def test_leaving_active_ends_sessions(self):
         emp = self.make()

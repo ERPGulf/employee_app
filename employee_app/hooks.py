@@ -34,6 +34,9 @@ doc_events = {
     },
     "Employee Location": {
         "validate": "employee_app.gauth.validate_coordinates"
+    },
+    "User": {
+        "on_update": "employee_app.auth_core.on_user_disabled"
     }
 }
 doctype_js = {
