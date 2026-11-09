@@ -9,7 +9,7 @@ from unittest.mock import patch
 import frappe
 from frappe.core.doctype.user.user import User
 from frappe.tests.utils import FrappeTestCase
-from frappe.utils.password import check_password, update_password
+from frappe.utils.password import update_password
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 
@@ -44,12 +44,15 @@ class AuthTestCase(FrappeTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        frappe.set_user("Administrator")  # the previous class may have left another user in session
         for patcher in (
             patch("employee_app.user_qa_code.create_qr_code"),  # QR files are not under test
             # Endpoints commit; keep everything in the test transaction that the class rolls back.
             patch.object(frappe.db, "commit"),
             # A fixed OTP and no WhatsApp: auth_core only allows this on developer-mode sites.
             patch.dict(frappe.conf, {"developer_mode": 1, "employee_app_test_otp": TEST_OTP}),
+            # ERPNext's test setup sets the country to United States; the numbers below are Saudi.
+            patch("employee_app.auth_core._region", return_value="SA"),
         ):
             patcher.start()
             cls.addClassCleanup(patcher.stop)
@@ -59,12 +62,13 @@ class AuthTestCase(FrappeTestCase):
                 "app_name": "AuthTestApp",
                 "scopes": "all openid",
                 "default_redirect_uri": "http://localhost",
-            }).insert()
-        frappe.db.set_single_value("Checkin App Setting", "allow_in_app_password_setup", 1)
+            }).insert(ignore_permissions=True)
 
     def setUp(self):
+        # FrappeTestCase rolls back once per class, so reset shared state per test.
         frappe.cache().delete_keys("employee_app:auth:")
         frappe.set_user("Administrator")
+        frappe.db.set_single_value("Checkin App Setting", "allow_in_app_password_setup", 1)
 
     def make(self, authentication="Password Authentication", signed_up=1, own_password=0,
              high_security=0, mobile=None, password=LEGACY, roles=("Employee",)):
@@ -116,6 +120,10 @@ class TestLookup(AuthTestCase):
         emp = self.make()
         frappe.db.set_value("Employee", emp.name, "status", "Inactive")
         self.assertIsNone(auth_core.find_employee(emp.mobile))
+
+    def test_foreign_number_stored_without_plus(self):
+        emp = self.make(mobile="971559876543")
+        self.assertEqual(auth_core.find_employee("+971559876543").name, emp.name)
 
 
 class TestPolicyPromise(AuthTestCase):
@@ -256,6 +264,14 @@ class TestSignUp(AuthTestCase):
         self.assertTrue(can_log_in(emp.user, CHOSEN))
         self.assertEqual(frappe.db.get_value("Employee", emp.name, "custom_user_created_password"), 1)
 
+    def test_sign_up_never_sets_an_admin_password(self):
+        emp = self.make("Password Authentication", signed_up=0, password=CHOSEN, roles=("Employee", "System Manager"))
+        status, body = reply(sign_up_api(mobile_no=emp.mobile, otp=self.otp(emp), password="Takeover#Pass1"))
+        self.assertEqual((status, body["message"]), (401, "Invalid password"))
+        self.assertTrue(can_log_in(emp.user, CHOSEN))
+        self.assertEqual(reply(sign_up_api(mobile_no=emp.mobile, otp=TEST_OTP, password=CHOSEN))[0], 200)
+        self.assertTrue(can_log_in(emp.user, CHOSEN))
+
     def test_second_sign_up_is_refused(self):
         emp = self.make("Both", own_password=1, password=CHOSEN)
         status, body = reply(sign_up_api(mobile_no=emp.mobile, otp=self.otp(emp), password="Takeover#Pass1"))
@@ -285,6 +301,19 @@ class TestOtpDelivery(AuthTestCase):
 
 
 class TestSessions(AuthTestCase):
+    def test_refresh_token_must_be_a_string(self):
+        token = self.tokens(self.make())  # the newest token on the site
+        for value in (["like", "%"], ["!=", ""], {"like": "%"}):
+            self.assertEqual(reply(refresh_employee_token(value))[0], 401)
+        self.assertEqual(self.token_status(token), "Active")
+
+    def test_locks_survive_a_full_cache_clear(self):
+        emp = self.make("Password Authentication", own_password=1, password=CHOSEN)
+        for _ in range(auth_core.LOCK_AFTER):
+            reply(sign_in_api(mobile_no=emp.mobile, password="wrong-Pass1"))
+        frappe.clear_cache()  # ERPNext does this on every Employee save
+        self.assertEqual(reply(sign_in_api(mobile_no=emp.mobile, password=CHOSEN))[0], 429)
+
     def test_refresh_works_once_and_reuse_ends_every_session(self):
         emp = self.make()
         first = self.tokens(emp)

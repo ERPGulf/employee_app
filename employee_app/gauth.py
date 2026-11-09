@@ -664,9 +664,10 @@ def create_new_password(mobile_no=None, otp=None, new_password=None):
         if not verify_otp(employee.name, otp):
             return refuse("Invalid or expired OTP", 401)
 
-        update_password(employee.user_id, new_password, logout_all_sessions=True)
+        # Other writes first: update_password commits when it ends Desk sessions.
         revoke_tokens(employee.user_id)
         _update_user_created_password_flag(employee.name, new_password)
+        update_password(employee.user_id, new_password, logout_all_sessions=True)
         auth_event("password_set", employee.name)
 
         return _json({"data": {

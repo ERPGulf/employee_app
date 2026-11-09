@@ -10,6 +10,7 @@ from employee_app.auth_core import (
     OTP_TTL,
     failure_reply,
     find_employee,
+    is_privileged,
     issue_app_tokens,
     log_failure,
     password_setup_allowed,
@@ -19,6 +20,7 @@ from employee_app.auth_core import (
     throttle_ip,
     throttled_reply,
     verify_otp,
+    verify_password,
 )
 from employee_app.gauth import _authenticate, _issue_bearer_token
 
@@ -314,7 +316,19 @@ def sign_up_api(mobile_no=None, otp=None, password=None):
         if not user_id or not frappe.db.get_value("User", user_id, "enabled"):
             return _credentials_refused()
 
-        if chosen_password and password_too_weak(user_id, password):
+        # An admin account keeps the password it uses in Desk: sign-up checks it, never sets it.
+        save_password = chosen_password and not is_privileged(user_id)
+        if chosen_password and not save_password and not verify_password(employee_id, user_id, password):
+            return Response(
+                json.dumps({
+                    "status":  "error",
+                    "message": "Invalid password",
+                    "user_count": 0,
+                }),
+                status=401, mimetype="application/json",
+            )
+
+        if save_password and password_too_weak(user_id, password):
             return Response(
                 json.dumps({
                     "status":  "error",
@@ -335,19 +349,22 @@ def sign_up_api(mobile_no=None, otp=None, password=None):
                 status=401, mimetype="application/json",
             )
 
-        # ── STEP 4: Save a password only when the employee chose one. The
-        # app's placeholder never becomes the login password, so it can't
-        # replace a password the employee uses on the ERP website.
+        # ── STEP 4: Record the sign-up, and save a password only when the
+        # employee chose one. The app's placeholder never becomes the login
+        # password, so it can't replace a password used on the ERP website.
+        # Flags first: update_password commits when it ends Desk sessions,
+        # and issuing the token commits too.
         if chosen_password:
-            update_password(user_id, password, logout_all_sessions=True)
             _update_user_created_password_flag(employee_id, password)
+        frappe.db.set_value("Employee", employee_id, "custom_employee_has_signed_up", 1)
+        if save_password:
+            update_password(user_id, password, logout_all_sessions=True)
 
         # ── STEP 5: Issue the token directly; the OTP proved who this is ────
         token_json = issue_app_tokens(user_id)
         if not token_json:
+            frappe.db.rollback()
             return _credentials_refused()
-
-        frappe.db.set_value("Employee", employee_id, "custom_employee_has_signed_up", 1)
 
         return Response(
             json.dumps({

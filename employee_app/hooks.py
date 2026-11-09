@@ -43,3 +43,7 @@ doctype_js = {
 # Runs after the bearer token is resolved: keeps the app's shared service token
 # on the pre-login methods (log-only until site_config sets employee_app_service_gate).
 auth_hooks = ["employee_app.auth_core.service_gate"]
+
+# OTPs, lockouts and throttle counters must survive frappe.clear_cache(), which
+# ERPNext calls on every Employee save.
+persistent_cache_keys = ["employee_app:auth:*"]

@@ -87,15 +87,18 @@ def _region():
 
 
 def canonical_mobile(raw, region):
-    """E.164 when the number parses, else its bare digits. Only the same number compares equal."""
+    """E.164 when the number parses (national for the site's country, or international
+    with or without "+"), else its bare digits. Only the same number compares equal."""
     raw = str(raw or "").strip()
-    try:
-        number = phonenumbers.parse(raw, region)
-        if phonenumbers.is_possible_number(number):
-            return phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
-    except phonenumbers.NumberParseException:
-        pass
-    return re.sub(r"\D", "", raw) or None
+    digits = re.sub(r"\D", "", raw)
+    for text, default_region in ((raw, region), ("+" + digits, None)):
+        try:
+            number = phonenumbers.parse(text, default_region)
+            if phonenumbers.is_possible_number(number):
+                return phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+        except phonenumbers.NumberParseException:
+            pass
+    return digits or None
 
 
 def find_employee(raw_mobile):
@@ -281,9 +284,14 @@ def password_setup_allowed(emp):
         and policies["sign_in_policy"]["password_policy"] != "No"
         # Both mode keeps two factors: an OTP may create the first password, never replace one.
         and not (policies["authentication"] == AUTH_BOTH and emp.get("custom_user_created_password"))
-        and not PRIVILEGED_ROLES & set(frappe.get_roles(user))
+        and not is_privileged(user)
         and not _testing_mode()
     )
+
+
+def is_privileged(user):
+    """An OTP alone must never set the password of an account like this."""
+    return bool(PRIVILEGED_ROLES & set(frappe.get_roles(user)))
 
 
 def _testing_mode():
@@ -322,7 +330,10 @@ def rotate_refresh_token(refresh_token):
     """
     from employee_app.gauth import _issue_bearer_token
 
-    name = refresh_token and frappe.db.get_value("OAuth Bearer Token", {"refresh_token": refresh_token}, "name")
+    # Only a plain string may reach the query: other JSON types act as filter operators or get type-converted.
+    if not isinstance(refresh_token, str) or not refresh_token:
+        return None
+    name = frappe.db.get_value("OAuth Bearer Token", {"refresh_token": refresh_token}, "name")
     if not name:
         return None
     # Lock by primary key (refresh_token has no index): two requests can't both rotate one token.

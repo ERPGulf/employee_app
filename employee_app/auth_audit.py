@@ -1,13 +1,16 @@
-"""Read-only evidence for the auth remediation, one site at a time.
+"""Evidence and incident tooling for the auth remediation, one site at a time.
 
     bench --site <site> execute employee_app.auth_audit.run
 
 Prints presence and counts only: never OTPs, passwords, tokens or mobile numbers.
 """
 
+import hashlib
+import json
 from collections import Counter
 
 import frappe
+from frappe.utils.password import Auth
 
 
 def run():
@@ -52,6 +55,9 @@ def run():
         "active_without_mobile": sum(1 for e in active if not e.cell_number),
         "mobiles_shared_by_active_employees": sum(1 for count in numbers.values() if count > 1),
         "active_employees_on_shared_mobiles": sum(count for count in numbers.values() if count > 1),
+        # Many of these mean a wrong System Settings country or bad data: exact matching may miss them.
+        "region": region,
+        "active_mobiles_not_valid_for_region": sum(1 for e in active if e.cell_number and not _valid(e.cell_number, region)),
         # Items 9 and 11.
         "password_setup_switch_on": bool(
             frappe.db.get_singles_dict("Checkin App Setting").get("allow_in_app_password_setup")
@@ -72,5 +78,52 @@ def run():
             where t.status = 'Active' and e.status != 'Active'"""
         )[0][0],
     }
+    print(frappe.as_json(report))
+    return report
+
+
+def _valid(raw, region):
+    import phonenumbers
+
+    try:
+        return phonenumbers.is_valid_number(phonenumbers.parse(str(raw), region))
+    except phonenumbers.NumberParseException:
+        return False
+
+
+def password_fingerprint(user):
+    """SHA-256 of the user's current password hash: shows whether it changed, reveals nothing."""
+    row = (
+        frappe.qb.from_(Auth)
+        .select(Auth.password)
+        .where((Auth.doctype == "User") & (Auth.name == user) & (Auth.fieldname == "password"))
+        .run()
+    )
+    return hashlib.sha256(row[0][0].encode()).hexdigest() if row else None
+
+
+def remove_exposed_passwords(kind="placeholder", dry_run=True):
+    """Approved incident step: remove the login password of accounts that the purge
+    patch recorded as still using a plaintext-exposed value, if it hasn't changed since.
+
+        bench --site <site> execute employee_app.auth_audit.remove_exposed_passwords \\
+            --kwargs "{'kind': 'placeholder', 'dry_run': False}"
+
+    "placeholder": the app's managed values; nobody knows them and mobile sign-in doesn't use them.
+    "chosen": employees' own passwords; they then set a new one in the app or by Forgot Password.
+    """
+    from frappe.utils.password import remove_encrypted_password
+
+    from employee_app.auth_core import auth_event
+
+    with open(frappe.get_site_path("private", "employee_app_exposed_passwords.json")) as f:
+        recorded = [a for a in json.load(f)["accounts"] if a["kind"] == kind]
+    unchanged = [a["user"] for a in recorded if a["fingerprint"] and password_fingerprint(a["user"]) == a["fingerprint"]]
+    if not dry_run:
+        for user in unchanged:
+            remove_encrypted_password("User", user)
+        auth_event("exposed_passwords_removed", kind=kind, count=len(unchanged))
+    report = {"kind": kind, "recorded": len(recorded), "unchanged_since": len(unchanged),
+              "removed": 0 if dry_run else len(unchanged)}
     print(frappe.as_json(report))
     return report
