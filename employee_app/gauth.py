@@ -1,4 +1,5 @@
 import json
+from typing import Any
 import base64
 import frappe
 from datetime import datetime, timedelta
@@ -613,7 +614,7 @@ def get_employee_overtime_requests(employee,date=None):
 
 
 @frappe.whitelist(methods=["POST"])
-def create_new_password(mobile_no=None, otp=None, new_password=None):
+def create_new_password(mobile_no: str | int | None = None, otp: str | int | None = None, new_password: Any = None):
     """
     Set the login password of the Employee matched exactly by mobile_no,
     after the OTP sent by authentication.generate_and_send_otp(mobile_no).
@@ -646,6 +647,7 @@ def create_new_password(mobile_no=None, otp=None, new_password=None):
     try:
         throttle_ip("set_password")
 
+        # Raw JSON keeps malformed-password refusals inside this API's established response contract.
         if not mobile_no or not otp or not new_password or not isinstance(new_password, str):
             return refuse("mobile_no, otp and new_password are required", 400)
 

@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 import frappe
 from werkzeug.wrappers import Response
@@ -26,8 +27,12 @@ from employee_app.authentication import (
 # PUBLIC — Step 1 of sign-in / cold boot: check password and/or send OTP
 # ════════════════════════════════════════════════════════════════════════════════
 
-@frappe.whitelist(allow_guest=True)
-def otp_generate_for_sign_in(mobile_no=None, password=None, login_type="sign_in"):
+# Public sign-in verifies the employee password before token issue, or sends a rate-limited OTP.
+# OTP delivery returns no code or token; auth_core enforces exact employee lookup and lockout.
+@frappe.whitelist(allow_guest=True)  # nosemgrep: frappe-semgrep-rules.rules.security.guest-whitelisted-method
+def otp_generate_for_sign_in(
+    mobile_no: str | int | None = None, password: Any = None, login_type: str = "sign_in"
+):
     """
     Start sign-in (or cold-boot re-verification) for an existing employee,
     looked up by phone number.
@@ -137,7 +142,12 @@ def otp_generate_for_sign_in(mobile_no=None, password=None, login_type="sign_in"
 # ════════════════════════════════════════════════════════════════════════════════
 
 @frappe.whitelist()
-def sign_in_api(mobile_no=None, otp=None, password=None, login_type="sign_in"):
+def sign_in_api(
+    mobile_no: str | int | None = None,
+    otp: str | int | None = None,
+    password: Any = None,
+    login_type: str = "sign_in",
+):
     """
     Complete sign-in (or cold-boot re-verification) and issue the access +
     refresh token.

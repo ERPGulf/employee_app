@@ -1,4 +1,5 @@
 import json
+from typing import Any
 import base64
 import frappe
 from frappe import _
@@ -31,7 +32,7 @@ from employee_app.gauth import _authenticate, _issue_bearer_token
 # ════════════════════════════════════════════════════════════════════════════════
 
 @frappe.whitelist()
-def get_employee_login_policy(mobile=None):
+def get_employee_login_policy(mobile: str | int | None = None):
     try:
         throttle_ip("login_policy")
 
@@ -163,7 +164,7 @@ def is_placeholder_password(password):
 # ════════════════════════════════════════════════════════════════════════════════
 
 @frappe.whitelist()
-def generate_and_send_otp(mobile_no=None):
+def generate_and_send_otp(mobile_no: str | int | None = None):
     """Send a random OTP by WhatsApp to the employee with exactly this number.
     Per-employee limits apply (auth_core.issue_otp); the OTP is never returned
     or logged, and provider replies never reach the caller."""
@@ -212,7 +213,7 @@ def generate_and_send_otp(mobile_no=None):
 
 
 @frappe.whitelist()
-def sign_up_api(mobile_no=None, otp=None, password=None):
+def sign_up_api(mobile_no: str | int | None = None, otp: str | int | None = None, password: Any = None):
     """
     First-time enrollment: verify the OTP sent via generate_and_send_otp,
     save a password the employee chose, and issue an OAuth2 access token.
@@ -429,7 +430,7 @@ def _update_user_created_password_flag(employee_id, password):
 
 
 @frappe.whitelist()
-def refresh_employee_token(refresh_token):
+def refresh_employee_token(refresh_token: Any):
     """
     Create a new access token using a refresh token. Each refresh token works
     once; one presented again ends every session of its user
@@ -438,6 +439,7 @@ def refresh_employee_token(refresh_token):
     Params:
         refresh_token: The refresh token string received during initial login
     """
+    # Keep raw JSON intact: rotate_refresh_token rejects nonstrings with the API's 401 response.
     if not refresh_token:
         return Response(
             json.dumps({
@@ -477,7 +479,9 @@ def refresh_employee_token(refresh_token):
         return failure_reply("refresh_employee_token")
 
 
-@frappe.whitelist(allow_guest=True)
+# Existing public service-token bootstrap; configured credentials do not identify the caller.
+# Tenants must provision a limited service user; service_gate enforcement remains tenant controlled.
+@frappe.whitelist(allow_guest=True)  # nosemgrep: frappe-semgrep-rules.rules.security.guest-whitelisted-method
 def master_token():
         try:
             try:

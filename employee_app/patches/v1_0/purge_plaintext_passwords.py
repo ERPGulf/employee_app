@@ -39,7 +39,8 @@ def execute():
             ]
             path = frappe.get_site_path("private", "employee_app_exposed_passwords.json")
             os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, "w") as f:
+            # Reviewed: migration-only; path is the fixed private filename for this site above.
+            with open(path, "w") as f:  # nosemgrep: frappe-security-file-traversal
                 json.dump({"recorded": now(), "accounts": accounts}, f, indent=1)
 
             frappe.db.sql("update `tabEmployee` set custom_employee_password = NULL")

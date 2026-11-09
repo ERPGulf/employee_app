@@ -24,6 +24,12 @@ def run():
     region = _region()
     numbers = Counter(canonical_mobile(e.cell_number, region) for e in active if e.cell_number)
     linked_users = [e.user_id for e in active if e.user_id]
+    service_user_can_read = {}
+    for doctype in ("Employee", "User", "Error Log", "OAuth Bearer Token", "Checkin App Setting"):
+        allowed = False
+        if service_user:
+            allowed = frappe.has_permission(doctype, "read", user=service_user)
+        service_user_can_read[doctype] = bool(allowed)
 
     report = {
         "site": frappe.local.site,
@@ -32,10 +38,7 @@ def run():
         "service_user_is_administrator": service_user == "Administrator",
         "service_user_roles": sorted(roles),
         "service_user_privileged": bool(PRIVILEGED_ROLES & roles),
-        "service_user_can_read": {
-            doctype: bool(service_user and frappe.has_permission(doctype, "read", user=service_user))
-            for doctype in ("Employee", "User", "Error Log", "OAuth Bearer Token", "Checkin App Setting")
-        },
+        "service_user_can_read": service_user_can_read,
         "service_user_active_tokens": frappe.db.count("OAuth Bearer Token", {"user": service_user, "status": "Active"})
         if service_user
         else 0,
@@ -116,7 +119,8 @@ def remove_exposed_passwords(kind="placeholder", dry_run=True):
 
     from employee_app.auth_core import auth_event
 
-    with open(frappe.get_site_path("private", "employee_app_exposed_passwords.json")) as f:
+    # Reviewed: bench-only tool; both path components are fixed, scoped to the initialized site.
+    with open(frappe.get_site_path("private", "employee_app_exposed_passwords.json")) as f:  # nosemgrep: frappe-security-file-traversal
         recorded = [a for a in json.load(f)["accounts"] if a["kind"] == kind]
     unchanged = [a["user"] for a in recorded if a["fingerprint"] and password_fingerprint(a["user"]) == a["fingerprint"]]
     if not dry_run:

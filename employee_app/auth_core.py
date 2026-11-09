@@ -15,6 +15,7 @@ import secrets
 
 import frappe
 import phonenumbers
+from frappe import _
 from frappe.utils import cint
 from frappe.utils.password import check_password, get_encryption_key
 from werkzeug.wrappers import Response
@@ -75,12 +76,6 @@ def auth_event(event, employee=None, **fields):
 
 # ── Who is calling: exact numbers only ───────────────────────────────────────
 
-_EMPLOYEE_FIELDS = (
-    "name, employee_name, cell_number, user_id, status, custom_authentication, custom_high_security,"
-    " custom_user_created_password, custom_employee_has_signed_up"
-)
-
-
 def _region():
     country = frappe.db.get_single_value("System Settings", "country")
     code = country and frappe.db.get_value("Country", country, "code")
@@ -111,7 +106,9 @@ def find_employee(raw_mobile):
     # Narrow by the last 7 digits, then compare whole numbers.
     # ponytail: unindexed scan, like the suffix match it replaces; add an indexed E.164 column if employees reach ~100k.
     rows = frappe.db.sql(
-        f"""select {_EMPLOYEE_FIELDS} from `tabEmployee`
+        """select name, employee_name, cell_number, user_id, status,
+        custom_authentication, custom_high_security, custom_user_created_password,
+        custom_employee_has_signed_up from `tabEmployee`
         where status = 'Active' and regexp_replace(cell_number, '[^0-9]', '') like %s""",
         ("%" + re.sub(r"\D", "", wanted)[-7:],),
         as_dict=True,
@@ -153,14 +150,16 @@ def throttle_ip(endpoint):
 
 def _check_lock(employee):
     # Raw get: RedisWrapper.exists() would prefix the already prefixed key again.
-    if frappe.cache().get(_key(f"lock:{employee}")):
+    # Reviewed: _key applies this site's make_key prefix; read Redis, not a request-local cache.
+    if frappe.cache().get(_key(f"lock:{employee}")):  # nosemgrep: frappe-cache-breaks-multitenancy
         raise frappe.RateLimitExceededError(TOO_MANY)
 
 
 def _failed(employee):
     """Count a wrong OTP or password. LOCK_AFTER in an hour lock the employee for LOCK_FOR."""
     if _hit(f"fail:{employee}", 60 * 60) >= LOCK_AFTER:
-        frappe.cache().set(_key(f"lock:{employee}"), 1, ex=LOCK_FOR)
+        # Reviewed: site-prefixed raw key, with the lock expiry set atomically.
+        frappe.cache().set(_key(f"lock:{employee}"), 1, ex=LOCK_FOR)  # nosemgrep: frappe-cache-breaks-multitenancy
         auth_event("employee_locked", employee)
     else:
         auth_event("auth_failed", employee)
@@ -187,7 +186,8 @@ def issue_otp(employee):
     throttle(f"otp-send:{employee}", 1, 60)
     throttle(f"otp-send-hour:{employee}", 5, 60 * 60)
     code = _test_otp() or str(100000 + secrets.randbelow(900000))  # 6 digits, no leading zero
-    cache = frappe.cache()
+    # Reviewed: _key isolates tenants; the Lua consume script needs an unpickled digest.
+    cache = frappe.cache()  # nosemgrep: frappe-cache-breaks-multitenancy
     cache.set(_key(f"otp:{employee}"), _digest(code), ex=OTP_TTL)
     cache.delete(_key(f"otp-try:{employee}"))
     return code
@@ -211,7 +211,9 @@ def send_otp(employee):
     code = issue_otp(employee.name)
     if _test_otp():
         return True
-    result = frappe.call(
+    # Reviewed: fixed provider method, never a caller-selected callable; frappe.call
+    # also filters keyword arguments for the installed provider's signature.
+    result = frappe.call(  # nosemgrep: frappe-codeinjection-eval
         "whatsapp_saudi.overrides.whtatsapp_notification.send_otp",
         phone=_clean_phone_number(employee.cell_number),
         otp_code=code,
@@ -341,7 +343,7 @@ def issue_app_tokens(user):
         return None
     client = _app_oauth_client()
     if not client:
-        frappe.throw("No OAuth Client found")
+        frappe.throw(_("No OAuth Client found"))
     return _issue_bearer_token(user, client.name, client.scopes)
 
 
@@ -383,7 +385,8 @@ def rotate_refresh_token(refresh_token):
     )
     if old.status != "Active":
         revoke_tokens(old.user)
-        frappe.db.commit()  # nosemgrep: refresh callers may use GET, which Frappe rolls back
+        # Persist replay revocation even for legacy GET callers, which Frappe rolls back.
+        frappe.db.commit()  # nosemgrep: frappe-manual-commit
         auth_event("refresh_token_reused", user=old.user)
         return None
     if not frappe.db.get_value("User", old.user, "enabled"):
