@@ -273,11 +273,11 @@ def upload_file():
             if fieldname is not None:
                 attach_field = frappe.get_doc(doctype, docname)
                 setattr(attach_field, fieldname, doc.file_url)
-                attach_field.save(ignore_permissions=True)
+                attach_field.save(ignore_permissions=False)
 
     return urls
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def _get_compound_code_from_coordinates(coordinates: str) -> str:
 
     try:
@@ -380,11 +380,12 @@ def add_log_based_on_employee_field(
             upload_func = frappe.get_attr("employee_app.attendance_api.upload_file")
             file_urls = upload_func()
 
+
         return doc
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Add Log Error")
-        return {"error": str(e)}
+        return Response(json.dumps({"error": str(e), "message": "Internal Server Error"}), status=500, mimetype="application/json")
 
 
 @frappe.whitelist()
@@ -1290,7 +1291,7 @@ def get_expense_claim_type():
     return expense_types
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def create_complaint(employee: str, date: str, message: str,complaint_type: str = None, file: str = None):
 
     try:
@@ -1653,7 +1654,7 @@ def get_monthly_break_hours(employee, date):
     return round(total_hours, 2)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_notification1(value):
 
 
@@ -1689,7 +1690,7 @@ def get_notification1(value):
     }
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def add_diagnostic_message(message):
     """Add a message to Diagnostics Employee App (long_text_obwc field)."""
     try:
@@ -1729,7 +1730,7 @@ def add_diagnostic_message(message):
             mimetype="application/json",
         )
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_loan_product():
     try:
             loan_products = frappe.get_all(
@@ -1943,7 +1944,7 @@ def _paired_seconds(logs):
     return total
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_attendance_history(employee: str = None, month: int = None, year: int = None):
     """Day-wise attendance history of an employee for a month"""
     import calendar

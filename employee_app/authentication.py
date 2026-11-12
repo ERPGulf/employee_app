@@ -605,7 +605,7 @@ def _find_employee_by_mobile(mobile_no):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def refresh_employee_token(refresh_token):
     """
     Create a new access token using a refresh token.
@@ -680,7 +680,7 @@ def refresh_employee_token(refresh_token):
 # PUBLIC — Set a new login password for the User linked to an Employee
 # ════════════════════════════════════════════════════════════════════════════════
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def set_employee_password(employee_id=None, password=None):
     """
     Set `password` as the new login password for the User linked to
@@ -945,7 +945,7 @@ def master_token():
 # Same request / response shape as otp_generate_for_sign_in and sign_in_api.
 # ════════════════════════════════════════════════════════════════════════════════
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def otp_generate_for_cold_boot(mobile_no=None, password=None):
     """
     Step 1 of cold boot.

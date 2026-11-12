@@ -46,6 +46,7 @@ def warehouse_list(employee_code=None):
     except Exception as e:
         return Response(
             json.dumps({"error": str(e)}),
+
             status=500,
             mimetype="application/json",
         )
@@ -715,7 +716,7 @@ def normalize_to_default_uom(item_code, uom, qty):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def make_stock_entry(source_name, filters=None):
     import json
 
@@ -807,7 +808,7 @@ def make_stock_entry(source_name, filters=None):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_item_uom(item_code):
     try:
 
@@ -829,7 +830,7 @@ def get_item_uom(item_code):
         )
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def list_items_search(item=None, limit=None, offset=0):
     try:
         filters = {}
@@ -870,7 +871,7 @@ def list_items_search(item=None, limit=None, offset=0):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def on_submit(doc, method):
     for row in doc.items:
         if row.item_code and row.warehouse and doc.posting_date and doc.posting_time:
