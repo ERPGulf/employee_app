@@ -8,6 +8,7 @@ app_email = "support@ERPGulf.com"
 app_license = "MIT"
 required_apps = ["hrms"]
 doctype_list_js = {"Employee": "public/js/employee_list.js"}
+app_include_js = ["/assets/employee_app/js/monthly_attendance_sheet.js"]
 fixtures = [
     {"dt": "Custom Field", "filters": {"module": "Employee app for ERPNext"}},
     {

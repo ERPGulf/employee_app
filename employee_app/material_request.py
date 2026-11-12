@@ -131,8 +131,6 @@ def create_stock_entry(item_id, date_time, warehouse, uom, qty, employee, branch
     try:
         date_only = getdate(date_time)
         time_only = date_time.split(" ")[1] if " " in date_time else "00:00:00"
-
-        frappe.set_user("Administrator")
         item_code = frappe.db.get_value("Item", {"name": item_id}, "name")
         if not item_code:
             return Response(
@@ -1012,11 +1010,17 @@ def get_stock(item_code, warehouse, to):
 
 
 @frappe.whitelist(allow_guest=False)
-def create_material_request(date,items,task):
+def create_material_request(date, items, task, warehouse=None):
 
 
     try:
-        warehouse = "Stores - M"
+        warehouse = warehouse or frappe.db.get_single_value("Stock Settings", "default_warehouse")
+        if not warehouse or not frappe.db.exists("Warehouse", warehouse):
+            return Response(
+                json.dumps({"error": f"Warehouse '{warehouse}' not found. Pass a valid 'warehouse' or set Default Warehouse in Stock Settings."}),
+                status=400,
+                mimetype="application/json"
+            )
 
         if isinstance(items, str):
             items = json.loads(items)
