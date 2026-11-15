@@ -54,4 +54,5 @@ docs: |2-
 
     ## Notes
     - Call this endpoint when the current access token expires to get a new one without re-entering credentials.
-    - The old refresh token is invalidated after use; store the new one returned in the response.
+    - Each refresh token works once; store the new one returned. A refresh token presented again ends every session of that user, who then signs in again.
+    - Send the refresh token as a string (form field or query parameter); other types are refused.

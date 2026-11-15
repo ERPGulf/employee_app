@@ -20,9 +20,15 @@ fixtures = [
 
 doc_events = {
     "Employee": {
-        "on_update": "employee_app.user_qa_code.create_qr_code",
+        "on_update": [
+            "employee_app.user_qa_code.create_qr_code",
+            "employee_app.auth_core.on_employee_security_change",
+        ],
         "on_trash": "employee_app.user_qa_code.delete_qr_code_file",
-        "validate": "employee_app.gauth.validate_location_restriction"
+        "validate": [
+            "employee_app.gauth.validate_location_restriction",
+            "employee_app.auth_core.reset_signup_on_authentication_change",
+        ],
     },
     "Employee Checkin": {
         "after_insert": "employee_app.attendance_api.employee_checkin_handler"
@@ -32,9 +38,19 @@ doc_events = {
     },
     "Employee Location": {
         "validate": "employee_app.gauth.validate_coordinates"
+    },
+    "User": {
+        "on_update": "employee_app.auth_core.on_user_disabled"
     }
 }
 doctype_js = {
     "Employee Notification": "public/fetch_employee.js",
-    "User": "public/sync_user_password.js"
 }
+
+# Runs after the bearer token is resolved: keeps the app's shared service token
+# on the pre-login methods (log-only until site_config sets employee_app_service_gate).
+auth_hooks = ["employee_app.auth_core.service_gate"]
+
+# OTPs, lockouts and throttle counters must survive frappe.clear_cache(), which
+# ERPNext calls on every Employee save.
+persistent_cache_keys = ["employee_app:auth:*"]

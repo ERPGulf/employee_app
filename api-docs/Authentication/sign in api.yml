@@ -31,7 +31,7 @@ docs: |-
 
       Completes sign-in after `sign in otp generation` has sent an OTP — step 2
       of OTP-based sign-in when `custom_otp_policy` is `Mandatory` or
-      `Optional`. Can also be used on its own to verify or set a password.
+      `Optional`. Never changes the employee's login password.
 
       ## Authentication
       Requires a valid Bearer token.
@@ -41,8 +41,8 @@ docs: |-
       | Name      | Type   | Required    | Description                                                                          |
       |-----------|--------|-------------|---------------------------------------------------------------------------------------|
       | mobile_no | string | Yes         | Same phone number passed to `sign in otp generation`                                  |
-      | otp       | string | Conditional | OTP entered by the user, checked-and-cleared against the cache. At least one of `otp` / `password` is required |
-      | password  | string | Conditional | Verified (if the employee already has a self-chosen password) or set (if not). At least one of `otp` / `password` is required |
+      | otp       | string | Conditional | OTP from `generate otp for login`, required when the policy needs one. Single use; 5 wrong codes destroy it |
+      | password  | string | Yes         | Always sent. Checked when the policy needs a password; for OTP-only sign-in the app sends its placeholder, which is ignored. Never stored or set here |
 
       ## Response
 
@@ -88,7 +88,8 @@ docs: |-
       ```
 
       ## Notes
-      - Either `otp`, `password`, or both must be supplied; supplying neither returns a 400 error.
-      - If the employee has not yet chosen their own password (`custom_user_created_password` is unset), the supplied `password` is written as their new login password instead of being verified against an existing one.
+      - `mobile_no` and `password` are always required (400 otherwise); `otp` is required when the policy says so. The number must match exactly one Active employee.
+      - Sign-in never writes the login password, so a password the employee uses on the ERP website stays valid. Passwords are set only by `sign up` (first time) and `create new password`.
+      - 10 wrong passwords or OTPs in an hour lock the employee for 15 minutes: HTTP 429 `{"status": "error", "message": "Too many attempts. Try again later."}`.
       - A consumed OTP is deleted from the cache immediately, so it cannot be replayed on a later call.
       - On success, returns the same OAuth2 access + refresh token pair as `sign up`.

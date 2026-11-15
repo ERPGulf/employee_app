@@ -411,7 +411,6 @@ def employee(employee_code: str = None, custom_in: str = None):
     else:
         return frappe.get_all("Employee", fields=["name"])
 
-
 @frappe.whitelist()
 def get_employee_data(employee_id: str = None):
     try:
