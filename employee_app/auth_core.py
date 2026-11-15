@@ -174,9 +174,17 @@ def _digest(code):
 
 
 def _test_otp():
-    """A fixed OTP for automated testing: developer-mode sites only, set in site_config.json."""
-    if frappe.conf.get("developer_mode") and frappe.conf.get("employee_app_test_otp"):
+    """A fixed OTP for testing, and only on developer-mode sites: employee_app_test_otp
+    in site_config.json, else Whatsapp Saudi's Testing OTP while its Testing box is ticked.
+    developer_mode lives in site_config.json, so a Desk user ticking Testing on a
+    production site never turns this on."""
+    if not frappe.conf.get("developer_mode"):
+        return None
+    if frappe.conf.get("employee_app_test_otp"):
         return str(frappe.conf.get("employee_app_test_otp"))
+    if _testing_mode():
+        code = str(frappe.db.get_single_value("Whatsapp Saudi", "testing_otp") or "").strip()
+        return code or None
     return None
 
 

@@ -466,3 +466,30 @@ class TestServiceGate(AuthTestCase):
         frappe.set_user(self.make().user)
         with patch.dict(frappe.conf, {"employee_app_service_gate": "enforce"}):
             self.assertIsNone(self.call_gate("/api/resource/Employee"))
+
+
+class TestWhatsappTestingOtp(FrappeTestCase):
+    """Whatsapp Saudi's Testing OTP is honoured on developer-mode sites only."""
+
+    def check(self, conf, testing, expected):
+        def single(doctype, field):
+            return {"testing": testing, "testing_otp": "123456"}[field]
+
+        with (
+            patch.dict(frappe.conf, conf),
+            patch.object(auth_core, "_testing_mode", return_value=testing),
+            patch.object(frappe.db, "get_single_value", side_effect=single),
+        ):
+            self.assertEqual(auth_core._test_otp(), expected)
+
+    def test_used_on_developer_mode_sites_while_testing_is_ticked(self):
+        self.check({"developer_mode": 1, "employee_app_test_otp": None}, 1, "123456")
+
+    def test_ignored_while_testing_is_unticked(self):
+        self.check({"developer_mode": 1, "employee_app_test_otp": None}, 0, None)
+
+    def test_ignored_on_production_sites(self):
+        self.check({"developer_mode": 0, "employee_app_test_otp": None}, 1, None)
+
+    def test_site_config_otp_wins(self):
+        self.check({"developer_mode": 1, "employee_app_test_otp": "654321"}, 1, "654321")

@@ -142,4 +142,4 @@ The order of operations:
 |---|---|
 | `employee_app_service_gate` | `"enforce"` refuses the service token outside the pre-login methods. Unset, those calls are only logged to `logs/employee_app.auth.log` |
 | `employee_app_ip_limit_per_hour` | Overrides the per-IP limit |
-| `employee_app_test_otp` | A fixed OTP for automated tests, honoured **only** when `developer_mode` is on |
+| `employee_app_test_otp` | A fixed OTP for automated tests, honoured **only** when `developer_mode` is on. Without it, a developer-mode site uses Whatsapp Saudi's **Testing OTP** while **Testing** is ticked; production sites (no `developer_mode`) ignore both and always send a random OTP |
