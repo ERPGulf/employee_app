@@ -415,6 +415,16 @@ def on_employee_security_change(doc, method=None):
         auth_event("tokens_revoked", doc.name, reason="high_security_on" if tightened else "not_active")
 
 
+def reset_signup_on_authentication_change(doc, method=None):
+    """Employee validate: changing the Authentication method means the employee must
+    sign up again, so clear Employee_has_Signed_up in the same save."""
+    if doc.is_new() or not doc.has_value_changed("custom_authentication"):
+        return
+    if doc.get("custom_employee_has_signed_up"):
+        doc.custom_employee_has_signed_up = 0
+        auth_event("signup_reset", doc.name, reason="authentication_changed")
+
+
 def on_user_disabled(doc, method=None):
     """User on_update: Frappe logs a disabled user out of Desk; end their OAuth sessions too
     (bearer tokens are not checked against User.enabled)."""
