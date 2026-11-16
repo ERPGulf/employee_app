@@ -42,7 +42,7 @@ docs: |-
       |-----------|--------|-------------|-----------------------------------------------------------------------------------------------------------|
       | mobile_no | string | Yes         | Employee's mobile number (same matching logic as `generate otp for login`)                                |
       | otp       | string | Yes         | OTP entered by the user, verified against what `generate otp for login` cached, and cleared once consumed |
-      | password  | string | Yes         | Always sent. A password the employee chose becomes their login password (required for `Mandatory`, optional for `Optional`); the app's "egf..." placeholder never does |
+      | password  | string | Yes         | Always sent. A first password the employee chose becomes their login password (required for `Mandatory`, optional for `Optional`); the app's "egf..." placeholder never does, and under OTP Authentication any value is ignored |
 
       ## Response
 
@@ -88,6 +88,6 @@ docs: |-
       ```
 
       ## Notes
-      - No plaintext copy is stored. An admin account (System Manager) must send its current Desk password, which is checked, never replaced.
+      - No plaintext copy is stored. An employee who already has a password of their own, or an admin account (System Manager), must send that current password, which is checked, never replaced (401 `Invalid password` otherwise).
       - `custom_user_created_password` is set to `1` only when the employee chose a password. A second sign-up returns 409 `Employee has already signed up`.
       - `app_key` is not accepted as a parameter — it's derived internally from the site's `OAuth Client`.
