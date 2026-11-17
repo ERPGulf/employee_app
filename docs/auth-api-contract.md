@@ -130,7 +130,7 @@ The order of operations:
 |---|---|
 | OTP | 6 digits, valid 5 minutes, single use, 5 wrong codes destroy it |
 | Lockout | 10 wrong OTPs or passwords in an hour lock the employee for 15 minutes |
-| Sends | 1 per minute and 5 per hour per employee |
+| Sends | 1 per 30 seconds and 10 per hour per employee |
 | Per IP | 600 per hour per endpoint (`employee_app_ip_limit_per_hour` in site_config) |
 
 - A throttled request gets HTTP 429 `{"status": "error", "message": "Too many attempts. Try again later."}`. `create_new_password` nests it under `data`.
@@ -142,4 +142,4 @@ The order of operations:
 |---|---|
 | `employee_app_service_gate` | `"enforce"` refuses the service token outside the pre-login methods. Unset, those calls are only logged to `logs/employee_app.auth.log` |
 | `employee_app_ip_limit_per_hour` | Overrides the per-IP limit |
-| `employee_app_test_otp` | A fixed OTP for automated tests, honoured **only** when `developer_mode` is on. Without it, a developer-mode site uses Whatsapp Saudi's **Testing OTP** while **Testing** is ticked; production sites (no `developer_mode`) ignore both and always send a random OTP |
+| `employee_app_test_otp` | A fixed OTP for automated tests. Without it, any site (production included) uses Whatsapp Saudi's **Testing OTP** while **Testing** is ticked, and sends nothing by WhatsApp; with Testing unticked, a random OTP is sent by WhatsApp |

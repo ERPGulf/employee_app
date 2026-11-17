@@ -81,5 +81,5 @@ docs: |2-
       ## Notes
       - The OTP is cached against the employee's mobile number for 5 minutes (`otp_expires_in`: 300).
       - OTPs are random, never returned or logged, and stored only as a keyed hash. Only on developer-mode sites, `employee_app_test_otp` in site_config.json fixes the code and skips WhatsApp, for automated tests.
-      - Limits: 1 send per minute and 5 per hour per employee: HTTP 429 `{"status": "error", "message": "Too many attempts. Try again later."}`.
+      - Limits: 1 send per 30 seconds and 10 per hour per employee: HTTP 429 `{"status": "error", "message": "Too many attempts. Try again later."}`.
       - Use the returned `policy.otp_policy` / `policy.password_policy` to decide whether `sign up` or `sign in api` needs an OTP and/or password next.
