@@ -248,9 +248,7 @@ def _extract_local_number(phone):
     return digits[-9:] if len(digits) >= 9 else digits
 
 
-# ════════════════════════════════════════════════════════════════════════════════
-# INTERNAL — Send OTP via WhatsApp (unchanged)
-# ════════════════════════════════════════════════════════════════════════════════
+
 
 def _send_otp_whatsapp(mobile_no, otp):
     try:
