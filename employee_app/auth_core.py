@@ -174,12 +174,9 @@ def _digest(code):
 
 
 def _test_otp():
-    """A fixed OTP for testing, and only on developer-mode sites: employee_app_test_otp
-    in site_config.json, else Whatsapp Saudi's Testing OTP while its Testing box is ticked.
-    developer_mode lives in site_config.json, so a Desk user ticking Testing on a
-    production site never turns this on."""
-    if not frappe.conf.get("developer_mode"):
-        return None
+    """A fixed OTP for testing: employee_app_test_otp in site_config.json, else
+    Whatsapp Saudi's Testing OTP while its Testing box is ticked. Works on any site,
+    production included, so untick Testing as soon as testing is done."""
     if frappe.conf.get("employee_app_test_otp"):
         return str(frappe.conf.get("employee_app_test_otp"))
     if _testing_mode():
@@ -191,8 +188,8 @@ def _test_otp():
 def issue_otp(employee):
     """A fresh OTP for this employee, replacing any earlier one. Deliver it out of band only."""
     _check_lock(employee)
-    throttle(f"otp-send:{employee}", 1, 60)
-    throttle(f"otp-send-hour:{employee}", 5, 60 * 60)
+    throttle(f"otp-send:{employee}", 1, 30)  # one OTP per 30 seconds
+    throttle(f"otp-send-hour:{employee}", 10, 60 * 60)  # ten OTPs per hour
     code = _test_otp() or str(100000 + secrets.randbelow(900000))  # 6 digits, no leading zero
     # Reviewed: _key isolates tenants; the Lua consume script needs an unpickled digest.
     cache = frappe.cache()  # nosemgrep: frappe-cache-breaks-multitenancy

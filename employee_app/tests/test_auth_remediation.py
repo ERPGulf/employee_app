@@ -469,7 +469,7 @@ class TestServiceGate(AuthTestCase):
 
 
 class TestWhatsappTestingOtp(FrappeTestCase):
-    """Whatsapp Saudi's Testing OTP is honoured on developer-mode sites only."""
+    """Whatsapp Saudi's Testing OTP is honoured on any site while Testing is ticked."""
 
     def check(self, conf, testing, expected):
         def single(doctype, field):
@@ -488,8 +488,8 @@ class TestWhatsappTestingOtp(FrappeTestCase):
     def test_ignored_while_testing_is_unticked(self):
         self.check({"developer_mode": 1, "employee_app_test_otp": None}, 0, None)
 
-    def test_ignored_on_production_sites(self):
-        self.check({"developer_mode": 0, "employee_app_test_otp": None}, 1, None)
+    def test_used_on_production_sites_while_testing_is_ticked(self):
+        self.check({"developer_mode": 0, "employee_app_test_otp": None}, 1, "123456")
 
     def test_site_config_otp_wins(self):
         self.check({"developer_mode": 1, "employee_app_test_otp": "654321"}, 1, "654321")
