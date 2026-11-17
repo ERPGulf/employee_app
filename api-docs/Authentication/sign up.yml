@@ -29,7 +29,7 @@ settings:
 docs: |-
   # Sign Up
 
-      Verifies the OTP sent by `generate otp for login`, optionally sets the
+      First-time enrollment only. Verifies the OTP sent by `generate otp for login`, optionally sets the
       employee's password, and — on success — issues an OAuth2 access +
       refresh token. Used for first-time employee onboarding / login.
 
@@ -42,7 +42,7 @@ docs: |-
       |-----------|--------|-------------|-----------------------------------------------------------------------------------------------------------|
       | mobile_no | string | Yes         | Employee's mobile number (same matching logic as `generate otp for login`)                                |
       | otp       | string | Yes         | OTP entered by the user, verified against what `generate otp for login` cached, and cleared once consumed |
-      | password  | string | Conditional | New login password. Required when `custom_password_policy` is `Mandatory`; optional when `Optional`; ignored when `No` |
+      | password  | string | Yes         | Always sent. A password the employee chose becomes their login password (required for `Mandatory`, optional for `Optional`); the app's "egf..." placeholder never does |
 
       ## Response
 
@@ -88,6 +88,6 @@ docs: |-
       ```
 
       ## Notes
-      - `password` is stored exactly as received — no hashing — into `custom_employee_password`, and is also set as the employee's normal (hashed) User login password.
-      - `custom_user_created_password` is set to `1` unless the password looks like an auto-generated placeholder (starts with `"egf"`), so the app can distinguish an employee-chosen password from a system default.
+      - No plaintext copy is stored. An admin account (System Manager) must send its current Desk password, which is checked, never replaced.
+      - `custom_user_created_password` is set to `1` only when the employee chose a password. A second sign-up returns 409 `Employee has already signed up`.
       - `app_key` is not accepted as a parameter — it's derived internally from the site's `OAuth Client`.

@@ -29,6 +29,8 @@
   "user",
   "password",
   "app_key",
+  "allow_in_app_password_setup",
+  "allow_erp_password_setup",
   "section_break_iwiu",
   "column_break_wwrs",
   "shortcut_1",
@@ -298,13 +300,27 @@
    "fieldname": "app_key",
    "fieldtype": "Data",
    "label": "App Key"
+  },
+  {
+   "default": "0",
+   "description": "Lets eligible employees set their password in the app after an OTP. Turn on only after this site runs the auth remediation release; turning it off stops setup at once.",
+   "fieldname": "allow_in_app_password_setup",
+   "fieldtype": "Check",
+   "label": "Allow in-app password setup"
+  },
+  {
+   "default": "0",
+   "description": "Lets eligible OTP-only employees set a password for the ERP website after an OTP. Their mobile sign-in stays OTP. Needs a client screen; turn on only after this site runs the auth remediation release.",
+   "fieldname": "allow_erp_password_setup",
+   "fieldtype": "Check",
+   "label": "Allow ERP password setup for OTP-only employees"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-20 09:52:13.064346",
+ "modified": "2026-11-09 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "Employee app for ERPNext",
  "name": "Checkin App Setting",
@@ -325,5 +341,6 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
