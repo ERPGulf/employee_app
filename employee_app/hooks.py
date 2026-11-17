@@ -40,11 +40,16 @@ doc_events = {
         "validate": "employee_app.gauth.validate_coordinates"
     },
     "User": {
-        "on_update": "employee_app.auth_core.on_user_disabled"
+        "on_update": "employee_app.auth_core.on_user_disabled",
+        "after_insert": "employee_app.twofa.on_user_after_insert"
+    },
+    "System Settings": {
+        "validate": "employee_app.twofa.validate_system_settings"
     }
 }
 doctype_js = {
     "Employee Notification": "public/fetch_employee.js",
+    "System Settings": "public/js/system_settings_2fa.js",
 }
 
 # Runs after the bearer token is resolved: keeps the app's shared service token
@@ -54,3 +59,11 @@ auth_hooks = ["employee_app.auth_core.service_gate"]
 # OTPs, lockouts and throttle counters must survive frappe.clear_cache(), which
 # ERPNext calls on every Employee save.
 persistent_cache_keys = ["employee_app:auth:*"]
+
+# On-screen QR enrolment for two-factor sign-in (employee_app/twofa.py)
+before_login = ["employee_app.twofa.install"]
+on_login = ["employee_app.twofa.on_login"]
+override_whitelisted_methods = {
+    "frappe.twofactor.reset_otp_secret": "employee_app.twofa.reset_otp_secret"
+}
+web_include_js = ["/assets/employee_app/js/2fa.js"]
