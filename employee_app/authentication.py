@@ -206,10 +206,71 @@ def generate_and_send_otp(mobile_no: str | int | None = None):
             status=200, mimetype="application/json",
         )
 
-    except frappe.RateLimitExceededError:
-        return throttled_reply()
-    except Exception:
-        return failure_reply("generate_and_send_otp")
+    except Exception as e:
+        frappe.log_error(title="send_otp error", message=frappe.get_traceback())
+        return Response(
+            json.dumps({"status": "error", "message": str(e)}),
+            status=500, mimetype="application/json",
+        )
+
+
+
+def _extract_local_number(phone):
+    """Strip everything but digits and return the last 9 (Saudi local length)."""
+    digits = re.sub(r"\D", "", phone or "")
+    return digits[-9:] if len(digits) >= 9 else digits
+
+
+
+
+def _send_otp_whatsapp(mobile_no, otp):
+    try:
+        from whatsapp_saudi.overrides.whtatsapp_notification import send_whatsapp_text
+
+        phone = _clean_phone_number(mobile_no)
+
+        frappe.log_error(title="OTP WhatsApp send", message=f"To: {phone} | OTP: {otp}")
+
+        message = (
+            f"رمز التحقق لتسجيل الدخول هو *{otp}*.\n"
+            "هذا الرمز صالح لمدة 5 دقائق. يُرجى عدم مشاركته مع أي شخص.\n\n"
+            f"Your login verification code is *{otp}*. "
+            "This code is valid for 5 minutes. Please do not share it with anyone."
+        )
+
+        result = send_whatsapp_text(message=message, phone=phone)
+
+
+        frappe.log_error(title="OTP WhatsApp response", message=frappe.as_json(result))
+
+        if isinstance(result, dict) and result.get("status") == "success":
+            return {"success": True}
+
+        frappe.log_error(title="OTP WhatsApp send failed", message=frappe.as_json(result))
+        return {"success": False, "error": result}
+
+    except Exception as e:
+        frappe.log_error(title="OTP WhatsApp exception", message=frappe.get_traceback())
+        return {"success": False, "error": str(e)}
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# INTERNAL — Clean phone number (unchanged)
+# ════════════════════════════════════════════════════════════════════════════════
+
+def _clean_phone_number(number):
+    phone = number.replace("+", "").replace("-", "").replace(" ", "")
+    if phone.startswith("00"):
+        phone = phone[2:]
+    elif phone.startswith("0"):
+        if len(phone) == 10:
+            phone = "966" + phone[1:]
+    else:
+        if len(phone) < 10:
+            phone = "966" + phone
+    if phone.startswith("0"):
+        phone = phone[1:]
+    return phone
 
 
 @frappe.whitelist()
