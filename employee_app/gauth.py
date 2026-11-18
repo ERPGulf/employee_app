@@ -624,14 +624,19 @@ def create_new_password(mobile_no: str | int | None = None, otp: str | int | Non
     (otp_verified_password_setup, the mobile app) or erp_password_setup_allowed
     (erp_web_password_setup_allowed, OTP-only employees' ERP password). The
     password is the employee's ERP website password too. The employee's
-    Authentication policy never changes here; their other sessions end.
+    Authentication policy never changes here.
+
+    Every OAuth token of the employee is revoked, including the calling app's
+    session: the app must sign in again. The password, the revocation and the
+    flags are committed together before the reply; ending ERP Desk sessions
+    follows the commit and can never turn the reply into a failure.
     Replies are nested under "data" (frozen contract).
     """
     from employee_app.auth_core import (
         TOO_MANY,
-        auth_event,
         erp_password_setup_allowed,
         find_employee,
+        finish_password_change,
         log_failure,
         password_setup_allowed,
         password_too_weak,
@@ -672,17 +677,12 @@ def create_new_password(mobile_no: str | int | None = None, otp: str | int | Non
         if not verify_otp(employee.name, otp):
             return refuse("Invalid or expired OTP", 401)
 
-        # Other writes first: update_password commits when it ends Desk sessions.
+        # One transaction: tokens revoked, flags updated, password set.
         revoke_tokens(employee.user_id)
         _update_user_created_password_flag(employee.name, new_password)
-        update_password(employee.user_id, new_password, logout_all_sessions=True)
-        auth_event("password_set", employee.name)
-
-        return _json({"data": {
-            "status": "success",
-            "message": "Password updated successfully",
-            "employee_id": employee.name,
-        }}, 200)
+        update_password(employee.user_id, new_password)
+        # Persist the change before replying; nothing after this may report a failure.
+        frappe.db.commit()  # nosemgrep: frappe-manual-commit
 
     except frappe.RateLimitExceededError:
         return refuse(TOO_MANY, 429)
@@ -692,6 +692,13 @@ def create_new_password(mobile_no: str | int | None = None, otp: str | int | Non
             "message": "Something went wrong",
             "ref": log_failure("create_new_password"),
         }}, 500)
+
+    finish_password_change(employee.user_id, employee.name)  # never raises
+    return _json({"data": {
+        "status": "success",
+        "message": "Password updated successfully",
+        "employee_id": employee.name,
+    }}, 200)
 
 GEO_TAGGING_OPTIONS = {
     "Disable geotagging": 0,

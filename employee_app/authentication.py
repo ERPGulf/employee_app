@@ -11,11 +11,13 @@ from employee_app.auth_core import (
     OTP_TTL,
     failure_reply,
     find_employee,
+    finish_password_change,
     is_privileged,
     issue_app_tokens,
     log_failure,
     erp_password_setup_allowed,
     password_setup_allowed,
+    password_setup_pending,
     password_too_weak,
     rotate_refresh_token,
     send_otp,
@@ -73,6 +75,9 @@ def get_employee_login_policy(mobile: str | int | None = None):
                 "otp_verified_password_setup": password_setup_allowed(employee),
                 # Separate offer for OTP-only employees: a password for the ERP website.
                 "erp_web_password_setup_allowed": erp_password_setup_allowed(employee),
+                # HR moved them to a policy that needs a password they have not set:
+                # lead with Create password (otp_verified_password_setup is true too).
+                "password_setup_pending": password_setup_pending(employee),
             }),
             status=200, mimetype="application/json",
         )
@@ -114,10 +119,12 @@ def get_login_policies(employee):
                                                     even after the
                                                     employee creates
                                                     a password)
-        Both                     password + OTP     password + OTP     password (OTP No)
+        Both                     password + OTP     password + OTP     password + OTP
 
-    Cold boot verification only applies when High Security is ticked;
-    otherwise the cold boot policy is POLICY_NONE.
+    Cold boot verification only applies when High Security is ticked, and then
+    asks for exactly what sign-in asks for: cold boot issues new tokens without
+    any earlier session, so it must never be weaker than sign-in. Otherwise the
+    cold boot policy is POLICY_NONE.
     The sign-up API never changes these policies, even when the employee
     creates a password.
 
@@ -138,12 +145,7 @@ def get_login_policies(employee):
         sign_up_policy = POLICY_BOTH
         sign_in_policy = POLICY_PASSWORD
 
-    if not high_security:
-        cold_boot_policy = POLICY_NONE
-    elif authentication == AUTH_BOTH:
-        cold_boot_policy = POLICY_PASSWORD
-    else:
-        cold_boot_policy = sign_in_policy
+    cold_boot_policy = sign_in_policy if high_security else POLICY_NONE
 
     return {
         "authentication":   authentication,
@@ -290,8 +292,13 @@ def sign_up_api(mobile_no: str | int | None = None, otp: str | int | None = None
         - OTP Authentication: no password is created.
 
     An employee who has already signed up is refused (409): later password
-    changes go through create_new_password and its rule. To re-enroll someone,
-    untick "Employee Has Signed Up" on the Employee.
+    changes go through create_new_password and its rule. Changing the
+    Authentication never requires a new sign-up. To re-enroll someone, untick
+    "Employee Has Signed Up" on the Employee.
+
+    Sign-up saves only a first password. A password the employee already chose,
+    or an admin account's Desk password, is checked instead of replaced, so an
+    OTP never overwrites it.
 
     Params:
         mobile_no : phone number used to look up the Employee.
@@ -299,7 +306,8 @@ def sign_up_api(mobile_no: str | int | None = None, otp: str | int | None = None
         password  : always required. When the employee doesn't create one
                     (OTP Authentication, or Optional without a password), the
                     app sends its "egf..." placeholder, which is ignored: it
-                    never becomes the login password.
+                    never becomes the login password. Under OTP Authentication
+                    any value is ignored.
     """
     try:
         throttle_ip("sign_up")
@@ -376,13 +384,20 @@ def sign_up_api(mobile_no: str | int | None = None, otp: str | int | None = None
                 status=400, mimetype="application/json",
             )
 
-        chosen_password = not is_placeholder_password(password)
+        # OTP-only policies take no password here (an ERP website password for them
+        # is a separate offer behind its own switch): any value counts as none.
+        chosen_password = password_policy != "No" and not is_placeholder_password(password)
 
         if not user_id or not frappe.db.get_value("User", user_id, "enabled"):
             return _credentials_refused()
 
-        # An admin account keeps the password it uses in Desk: sign-up checks it, never sets it.
-        save_password = chosen_password and not is_privileged(user_id)
+        # Only a first password is saved. One the employee already chose, or an admin
+        # account's Desk password, is checked instead: an OTP never replaces it.
+        save_password = (
+            chosen_password
+            and not is_privileged(user_id)
+            and not employee.get("custom_user_created_password")
+        )
         if chosen_password and not save_password and not verify_password(employee_id, user_id, password):
             return Response(
                 json.dumps({
@@ -415,21 +430,24 @@ def sign_up_api(mobile_no: str | int | None = None, otp: str | int | None = None
             )
 
         # ── STEP 4: Record the sign-up, and save a password only when the
-        # employee chose one. The app's placeholder never becomes the login
-        # password, so it can't replace a password used on the ERP website.
-        # Flags first: update_password commits when it ends Desk sessions,
-        # and issuing the token commits too.
+        # employee chose their first one. The app's placeholder never becomes
+        # the login password, so it can't replace a password used on the ERP
+        # website.
         if chosen_password:
             _update_user_created_password_flag(employee_id, password)
         frappe.db.set_value("Employee", employee_id, "custom_employee_has_signed_up", 1)
         if save_password:
-            update_password(user_id, password, logout_all_sessions=True)
+            update_password(user_id, password)
 
-        # ── STEP 5: Issue the token directly; the OTP proved who this is ────
+        # ── STEP 5: Issue the token directly; the OTP proved who this is.
+        # Issuing commits everything above at once; Desk sessions end only
+        # after that, so a saved password is never reported as a failure.
         token_json = issue_app_tokens(user_id)
         if not token_json:
             frappe.db.rollback()
             return _credentials_refused()
+        if save_password:
+            finish_password_change(user_id, employee_id)
 
         return Response(
             json.dumps({
@@ -483,10 +501,12 @@ def _update_user_created_password_flag(employee_id, password):
     "egf..." pattern. So custom_user_created_password is turned on only when
     the incoming password is not a placeholder (see is_placeholder_password).
     get_employee_login_policy reports it as employee_has_existing_password.
+    A chosen password also uses up HR's first-password grant (Password Setup Pending).
     """
-    frappe.db.set_value(
-        "Employee", employee_id, "custom_user_created_password", 0 if is_placeholder_password(password) else 1
-    )
+    chosen = not is_placeholder_password(password)
+    frappe.db.set_value("Employee", employee_id, "custom_user_created_password", int(chosen))
+    if chosen and frappe.db.has_column("Employee", "custom_password_setup_pending"):  # absent before migrate
+        frappe.db.set_value("Employee", employee_id, "custom_password_setup_pending", 0)
 
 
 
@@ -617,7 +637,7 @@ def master_token():
 #     Password Authentication  password             no verification
 #     OTP Authentication       OTP                  no verification
 #     Optional                 password or OTP      no verification
-#     Both                     password (OTP No)    no verification
+#     Both                     password + OTP       no verification
 #
 # With no verification required the APIs return 400 — the app should just
 # refresh its token via refresh_employee_token instead.

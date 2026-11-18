@@ -277,15 +277,28 @@ def password_setup_allowed(emp):
 
     get_employee_login_policy reports it to the app as otp_verified_password_setup,
     and create_new_password checks it again when it changes the password.
-    Tenant switch: allow_in_app_password_setup.
+    Allowed by the tenant switch allow_in_app_password_setup, or for this one
+    employee by HR's grant (first_password_granted).
     """
     from employee_app.authentication import get_login_policies
 
     return bool(
-        _setting("allow_in_app_password_setup")
+        (_setting("allow_in_app_password_setup") or first_password_granted(emp))
         and get_login_policies(emp)["sign_in_policy"]["password_policy"] != "No"
         and _otp_may_set_password(emp)
     )
+
+
+def first_password_granted(emp):
+    """HR moved this employee to a policy that needs a password they have not set
+    (on_authentication_change ticks Password Setup Pending). An OTP may then create
+    their first password, even with the tenant switch off; never replace one."""
+    return bool(emp.get("custom_password_setup_pending") and not emp.get("custom_user_created_password"))
+
+
+def password_setup_pending(emp):
+    """Reported as password_setup_pending: the app should lead with Create password."""
+    return first_password_granted(emp) and password_setup_allowed(emp)
 
 
 def erp_password_setup_allowed(emp):
@@ -401,25 +414,67 @@ def rotate_refresh_token(refresh_token):
 
 
 def on_employee_security_change(doc, method=None):
-    """Employee on_update: turning High Security on, or the employee leaving Active,
-    ends their app sessions. Raw SQL updates skip this hook."""
+    """Employee on_update: end the employee's app sessions when High Security is turned
+    on, the employee leaves Active, or the new Authentication would not have accepted
+    how those sessions signed in (OTP to Password, Password to Both, Optional to OTP...).
+    Raw SQL and db.set_value updates skip this hook."""
     if not doc.get("user_id"):
         return
-    tightened = doc.get("custom_high_security") and doc.has_value_changed("custom_high_security")
-    inactive = doc.get("status") != "Active" and doc.has_value_changed("status")
-    if tightened or inactive:
+    before = doc.get_doc_before_save()
+    reason = None
+    if doc.get("custom_high_security") and doc.has_value_changed("custom_high_security"):
+        reason = "high_security_on"
+    elif doc.get("status") != "Active" and doc.has_value_changed("status"):
+        reason = "not_active"
+    elif before and not _sessions_still_valid(before.get("custom_authentication"), doc.get("custom_authentication")):
+        reason = "authentication_changed"
+    if reason:
         revoke_tokens(doc.user_id)
-        auth_event("tokens_revoked", doc.name, reason="high_security_on" if tightened else "not_active")
+        auth_event("tokens_revoked", doc.name, reason=reason)
 
 
-def reset_signup_on_authentication_change(doc, method=None):
-    """Employee validate: changing the Authentication method means the employee must
-    sign up again, so clear Employee_has_Signed_up in the same save."""
+def _sign_in_proofs(authentication):
+    """The credential sets that sign an employee in under this Authentication."""
+    from employee_app.authentication import get_login_policies
+
+    policy = get_login_policies({"custom_authentication": authentication})["sign_in_policy"]
+    if policy["password_policy"] == "Optional":
+        return [{"password"}, {"otp"}]  # either one alone
+    return [{f for f in ("password", "otp") if policy[f"{f}_policy"] == "Mandatory"}]
+
+
+def _sessions_still_valid(old, new):
+    """True when every way of signing in under `old` also satisfies `new`."""
+    needed = _sign_in_proofs(new)
+    return all(any(need <= proof for need in needed) for proof in _sign_in_proofs(old))
+
+
+def on_authentication_change(doc, method=None):
+    """Employee validate: a new Authentication never undoes sign-up and never touches a
+    password. When the new sign-in policy requires a password the employee has not set,
+    HR's change ticks Password Setup Pending, which lets them create their first password
+    with an OTP (first_password_granted); a policy without that need clears it."""
+    from employee_app.authentication import get_login_policies
+
     if doc.is_new() or not doc.has_value_changed("custom_authentication"):
         return
-    if doc.get("custom_employee_has_signed_up"):
-        doc.custom_employee_has_signed_up = 0
-        auth_event("signup_reset", doc.name, reason="authentication_changed")
+    needs_password = get_login_policies(doc)["sign_in_policy"]["password_policy"] == "Mandatory"
+    pending = int(needs_password and not doc.get("custom_user_created_password"))
+    doc.set("custom_password_setup_pending", pending)  # ignored on sites not yet migrated
+    if pending:
+        auth_event("password_setup_granted", doc.name, reason="authentication_changed")
+
+
+def finish_password_change(user, employee):
+    """After a password change is committed: end the user's ERP Desk sessions and log it.
+    Never raises, so a committed change is never reported as a failure."""
+    from frappe.sessions import clear_sessions
+
+    try:
+        clear_sessions(user=user, keep_current=True, force=True)
+        auth_event("password_set", employee)
+    except Exception:
+        log_failure("finish_password_change")
 
 
 def on_user_disabled(doc, method=None):

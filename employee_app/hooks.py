@@ -27,7 +27,7 @@ doc_events = {
         "on_trash": "employee_app.user_qa_code.delete_qr_code_file",
         "validate": [
             "employee_app.gauth.validate_location_restriction",
-            "employee_app.auth_core.reset_signup_on_authentication_change",
+            "employee_app.auth_core.on_authentication_change",
         ],
     },
     "Employee Checkin": {

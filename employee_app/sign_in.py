@@ -155,7 +155,7 @@ def sign_in_api(
     The policy comes from get_login_policies — "sign_in_policy" or
     "cold_boot_policy" depending on login_type:
 
-        Password only (Password Authentication, Both on cold boot):
+        Password only (Password Authentication):
             password must match the employee's login password.
         Optional (password and OTP both "Optional"):
             either otp is verified, or — with no otp — password must match.
