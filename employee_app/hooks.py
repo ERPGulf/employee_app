@@ -41,15 +41,15 @@ doc_events = {
     },
     "User": {
         "on_update": "employee_app.auth_core.on_user_disabled",
-        "after_insert": "employee_app.twofa.on_user_after_insert"
+        "after_insert": "employee_app.TwoFA.login.on_user_after_insert"
     },
     "System Settings": {
-        "validate": "employee_app.twofa.validate_system_settings"
+        "validate": "employee_app.TwoFA.policy.validate_system_settings"
     }
 }
 doctype_js = {
     "Employee Notification": "public/fetch_employee.js",
-    "System Settings": "public/js/system_settings_2fa.js",
+    "System Settings": "public/js/2fa/system_settings.js",
 }
 
 # Runs after the bearer token is resolved: keeps the app's shared service token
@@ -61,9 +61,9 @@ auth_hooks = ["employee_app.auth_core.service_gate"]
 persistent_cache_keys = ["employee_app:auth:*"]
 
 # On-screen QR enrolment for two-factor sign-in (employee_app/twofa.py)
-before_login = ["employee_app.twofa.install"]
-on_login = ["employee_app.twofa.on_login"]
+before_login = ["employee_app.TwoFA.login.install"]
+on_login = ["employee_app.TwoFA.login.on_login"]
 override_whitelisted_methods = {
-    "frappe.twofactor.reset_otp_secret": "employee_app.twofa.reset_otp_secret"
+    "frappe.twofactor.reset_otp_secret": "employee_app.TwoFA.login.reset_otp_secret"
 }
-web_include_js = ["/assets/employee_app/js/2fa.js"]
+web_include_js = ["/assets/employee_app/js/2fa/login.js"]

@@ -1,7 +1,7 @@
 // Copyright (c) 2026, ERPGulf.com
 // ERPGulf two-factor sign-in screens: QR enrolment, code entry and expiry.
 // Loaded by web_include_js.
-// Works with employee_app/twofa.py. Does nothing on pages without the sign-in form.
+// Works with employee_app/TwoFA/login.py. Does nothing on pages without the sign-in form.
 (function () {
 	// The sign-in page is served at /login and also at / for guests, so key on
 	// core's login script (continue_otp_app) instead of the path.
@@ -70,12 +70,12 @@
   </div>
   <div class="eg-two eg-howto">
    <div>
-    <div class="eg-pick"><h4>Using the Employee App?</h4><p>Just tap <b>Allow</b> on your phone. No code to type.</p></div>
+    <div class="eg-pick"><h4>Using the Employee App?</h4><p class="eg-push-text">Just tap <b>Allow</b> on your phone. No code to type.</p><p class="eg-push" data-lang="en"></p></div>
     <div class="eg-or"><span>OR</span></div>
     <p><b>Using Google or Microsoft Authenticator?</b> Open the app, find this site, and type the <b>6-digit code</b> below. The code changes every 30 seconds.</p>
    </div>
    <div class="eg-ar">
-    <div class="eg-pick"><h4>تستخدم تطبيق الموظفين؟</h4><p>اضغط <b>سماح</b> على هاتفك فقط، دون إدخال أي رمز.</p></div>
+    <div class="eg-pick"><h4>تستخدم تطبيق الموظفين؟</h4><p class="eg-push-text">اضغط <b>سماح</b> على هاتفك فقط، دون إدخال أي رمز.</p><p class="eg-push" data-lang="ar"></p></div>
     <div class="eg-or"><span>أو</span></div>
     <p><b>تستخدم Google Authenticator أو Microsoft Authenticator؟</b> افتح التطبيق، وابحث عن هذا الموقع، واكتب <b>الرمز المكوّن من 6 أرقام</b> أدناه. يتغيّر الرمز كل 30 ثانية.</p>
    </div>
@@ -88,6 +88,115 @@
   ${WARN}`
 		);
 		wire_code_form($root);
+		start_push($root);
+	}
+
+	// ── Push approval (employee_app/TwoFA/api.py) ──────────────────────
+	// Uses fetch, not jQuery, so polling never trips the ajaxComplete check in wire_code_form.
+
+	function tmp_id() {
+		const m = document.cookie.match(/(?:^|;\s*)tmp_id=([^;]*)/);
+		return m ? decodeURIComponent(m[1]) : "";
+	}
+
+	function push_api(endpoint, body) {
+		return fetch(`/api/method/employee_app.TwoFA.api.${endpoint}`, {
+			method: "POST",
+			credentials: "same-origin",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
+				"X-Frappe-CSRF-Token": (window.frappe && frappe.csrf_token) || "",
+			},
+			body: JSON.stringify(body),
+		}).then((r) => r.json());
+	}
+
+	const PUSH = {
+		sent: ["A notification was sent to your phone. Tap Allow, or enter the code below.", "أُرسل إشعار إلى هاتفك. اضغط سماح، أو أدخل الرمز أدناه."],
+		failed: ["Open the Employee App to approve, or enter the code below.", "افتح تطبيق الموظفين للموافقة، أو أدخل الرمز أدناه."],
+		approved: ["Approved on your phone. Signing you in…", "تمت الموافقة من هاتفك. جارٍ تسجيل الدخول…"],
+		denied: ["Sign-in was denied on your phone.", "تم رفض تسجيل الدخول من هاتفك."],
+		expired: ["The request expired.", "انتهت صلاحية الطلب."],
+		limited: ["Too many requests. Enter the code from your app.", "طلبات كثيرة جدًا. أدخل الرمز من تطبيقك."],
+		no_device: ["Enter the 6-digit code from your authenticator app below.", "أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة أدناه."],
+		again: ["Send again", "إرسال مرة أخرى"],
+	};
+
+	function set_push($root, msg, tone, again) {
+		$root.find(".eg-push").each(function () {
+			const ar = $(this).data("lang") === "ar";
+			$(this)
+				.attr("class", "eg-push eg-push-" + (tone || "info"))
+				.html(esc(msg[ar ? 1 : 0]) + (again ? ` <a href="#" class="eg-push-again">${PUSH.again[ar ? 1 : 0]}</a>` : ""));
+		});
+		$root.find(".eg-push-again").on("click", (e) => {
+			e.preventDefault();
+			start_push($root, true);
+		});
+	}
+
+	function start_push($root, resend) {
+		const tid = tmp_id();
+		if (!tid) return;
+		$root.data("eg-push-stop", false);
+		push_api("login_start", { tmp_id: tid, resend: resend ? 1 : 0 })
+			.then((r) => on_push_state($root, r, true))
+			.catch(() => {});
+	}
+
+	function poll_push($root) {
+		if ($root.data("eg-push-timer")) return;
+		const tick = () => {
+			if ($root.data("eg-push-stop") || !document.body.contains($root[0])) {
+				clearInterval($root.data("eg-push-timer"));
+				$root.data("eg-push-timer", null);
+				return;
+			}
+			push_api("login_status", { tmp_id: tmp_id() })
+				.then((r) => on_push_state($root, r, false))
+				.catch(() => {});
+		};
+		$root.data("eg-push-timer", setInterval(tick, 2000));
+	}
+
+	function stop_poll($root) {
+		clearInterval($root.data("eg-push-timer"));
+		$root.data("eg-push-timer", null);
+	}
+
+	function on_push_state($root, r, from_start) {
+		if (!r || r.status !== "ok" || $root.data("eg-push-stop")) return;
+		switch (r.state) {
+			case "pending":
+				set_push($root, r.push === "failed" ? PUSH.failed : PUSH.sent, "info");
+				poll_push($root);
+				break;
+			case "approved": {
+				stop_poll($root);
+				set_push($root, PUSH.approved, "ok");
+				const u = window.frappe && frappe.utils;
+				const back = u && u.sanitise_redirect && u.get_url_arg && u.sanitise_redirect(u.get_url_arg("redirect-to"));
+				window.location.href = back || r.home_page || "/app";
+				break;
+			}
+			case "denied":
+				stop_poll($root);
+				set_push($root, PUSH.denied, "bad");
+				setTimeout(() => window.location.reload(), 2500);
+				break;
+			case "expired":
+				stop_poll($root);
+				if (!from_start) set_push($root, PUSH.expired, "warn", true);
+				break;
+			case "rate_limited":
+				set_push($root, PUSH.limited, "warn");
+				break;
+			case "no_device":
+				$root.find(".eg-push-text").remove();
+				set_push($root, PUSH.no_device, "info");
+				break;
+		}
 	}
 
 	// Overlay shell: ERPGulf logo on navy, one white card
@@ -131,7 +240,7 @@
 			.find(".eg-error")
 			.html(
 				`<div>${msg[0]}</div><div class="eg-ar">${msg[1]}</div>` +
-				(again ? '<button class="eg-btn eg-again" type="button">Sign in again · تسجيل الدخول مجددًا</button>' : "")
+					(again ? '<button class="eg-btn eg-again" type="button">Sign in again · تسجيل الدخول مجددًا</button>' : "")
 			)
 			.addClass("eg-show")
 			.find(".eg-again")
@@ -152,6 +261,7 @@
 			}
 			$root.find(".eg-error").removeClass("eg-show").empty();
 			$btn.prop("disabled", true).addClass("eg-busy");
+			$root.data("eg-push-stop", true);
 			$("#login_token").val(code);
 			$(document).one("ajaxComplete", function (event, xhr) {
 				if (xhr.status === 200) return; // core signs in and redirects
@@ -272,6 +382,7 @@
 		tick();
 
 		wire_code_form($root);
+		push_api("login_start", { tmp_id: tmp_id() }).catch(() => {}); // opens the app's registration window
 	}
 
 	function add_styles() {
@@ -343,6 +454,13 @@
 .eg-howto .eg-pick{margin:0}
 .eg-howto .eg-pick h4{margin:0}
 .eg-howto .eg-pick p{font-size:14px;margin:4px 0 0}
+.eg-push:empty{display:none}
+.eg-push{margin-top:8px!important;font-size:13px!important;font-weight:600;border-radius:9px;padding:6px 10px}
+.eg-push-info{background:#EEF3FF;color:#2B4C9B}
+.eg-push-ok{background:#E3F5EC;color:#1F7A55}
+.eg-push-bad{background:#FBEAE8;color:#9E2A20}
+.eg-push-warn{background:#FFF6E0;color:#7A5600}
+.eg-push-again{color:#D9372B;text-decoration:underline;margin-left:4px}
 .eg-or{display:flex;align-items:center;gap:10px;margin:14px 0;color:#6B7385;font-size:12px;font-weight:700;letter-spacing:.5px}
 .eg-or:before,.eg-or:after{content:"";flex:1;height:1px;background:#E6E8EC}
 .eg-entry{max-width:380px;margin:4px auto 0;padding:0 20px 24px;text-align:center}
