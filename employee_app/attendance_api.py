@@ -9,7 +9,11 @@ from typing import TYPE_CHECKING
 from frappe.utils import get_time
 from frappe.utils import nowdate
 from werkzeug.wrappers import Response
-from frappe import _
+from frappe import _, is_whitelisted
+from frappe.utils.image import optimize_image
+
+if TYPE_CHECKING:
+    from frappe.core.doctype.user.user import User
 from hrms.hr.doctype.employee_checkin.employee_checkin import (
     calculate_working_hours,
     mark_attendance_and_link_log,
@@ -29,10 +33,10 @@ def insert_new_trip(
     trip_start_time: str,
     trip_start_km: str,
     trip_status: str,
-    trip_start_location: str = None,
-    job_order: str = None,
-    trip_type: str = None,
-    vehicle_number: str = None,
+    trip_start_location: str | None = None,
+    job_order: str | None = None,
+    trip_type: str | None = None,
+    vehicle_number: str | None = None,
 ):
     doc = frappe.get_doc({
         "doctype": "driver trips",
@@ -55,10 +59,10 @@ def insert_new_trip(
 def close_the_trip(
     trip_id: str,
     vehicle_id: str,
-    trip_end_km: str = None,
-    trip_end_location: str = None,
-    trip_status: str = None,
-    trip_end_time: str = None,
+    trip_end_km: str | None = None,
+    trip_end_location: str | None = None,
+    trip_status: str | None = None,
+    trip_end_time: str | None = None,
 ):
     doc = frappe.get_doc("driver trips", trip_id)
     doc.trip_end_time = trip_end_time
@@ -164,7 +168,7 @@ def error_log_seen(id: str):
 
 
 @frappe.whitelist()
-def list_employee(employee_code: str = None):
+def list_employee(employee_code: str | None = None):
     doc = frappe.get_all(
         "Employee",
         fields=["name"],
@@ -176,8 +180,8 @@ def list_employee(employee_code: str = None):
 @frappe.whitelist()
 def Employee_Checkin(
     employee_checkin: str,
-    fieldname: str = None,
-    fieldvalue: str = None,
+    fieldname: str | None = None,
+    fieldvalue: str | None = None,
     limit_start: int = 0,
     limit_page_length: int = 10,
 ):
@@ -301,11 +305,11 @@ def _get_compound_code_from_coordinates(coordinates: str) -> str:
 def add_log_based_on_employee_field(
     employee_field_value: str,
     timestamp: str,
-    location: str = None,
-    device_id: str = None,
-    log_type: str = None,
-    over_time: int = None,
-    file: str = None,
+    location: str | None = None,
+    device_id: str | None = None,
+    log_type: str | None = None,
+    over_time: int | None = None,
+    file: str | None = None,
     auto: bool = False,
     offline_checkin: bool = False,
 ):
@@ -389,7 +393,7 @@ def add_log_based_on_employee_field(
 
 
 @frappe.whitelist()
-def employee(employee_code: str = None, custom_in: str = None):
+def employee(employee_code: str | None = None, custom_in: str | None = None):
 
     if employee_code:
         if frappe.db.exists("Employee", employee_code):
@@ -412,7 +416,7 @@ def employee(employee_code: str = None, custom_in: str = None):
         return frappe.get_all("Employee", fields=["name"])
 
 @frappe.whitelist()
-def get_employee_data(employee_id: str = None):
+def get_employee_data(employee_id: str | None = None):
     try:
         if employee_id:
             data = frappe.db.get_value(
@@ -556,7 +560,7 @@ def get_employee_data(employee_id: str = None):
 
 
 @frappe.whitelist()
-def get_attendance_details(employee_id: str = None, limit_start: int = 0, limit_page_length: int = 20):
+def get_attendance_details(employee_id: str | None = None, limit_start: int = 0, limit_page_length: int = 20):
     try:
         doc = frappe.db.get_list(
             "Employee Checkin",
@@ -609,7 +613,7 @@ def get_shift_info(employee):
 
 
 @frappe.whitelist()
-def is_employee_shift_enabled(employee: str = None):
+def is_employee_shift_enabled(employee: str | None = None):
     """Check if Employee Shift setting is enabled for the given employee"""
     try:
         if not employee:
@@ -841,11 +845,11 @@ def get_expense_claims(limit: int = 100):
 @frappe.whitelist()
 def create_expense_claim(
     employee: str,
-    expense_date: str = None,
+    expense_date: str | None = None,
     amount = None,
-    expense_type: str = None,
-    description: str = None,
-    file_name: str = None,
+    expense_type: str | None = None,
+    description: str | None = None,
+    file_name: str | None = None,
 ):
 
     try:
@@ -911,9 +915,9 @@ def create_leave_application(
     leave_type: str,
     from_date: str,
     to_date: str,
-    posting_date: str = None,
-    acknowledgement_policy: str = None,
-    reason: str = None,
+    posting_date: str | None = None,
+    acknowledgement_policy: str | None = None,
+    reason: str | None = None,
 ):
     """Create Leave Application from API"""
     try:
@@ -1291,7 +1295,7 @@ def get_expense_claim_type():
 
 
 @frappe.whitelist()
-def create_complaint(employee: str, date: str, message: str,complaint_type: str = None, file: str = None):
+def create_complaint(employee: str, date: str, message: str,complaint_type: str | None = None, file: str | None = None):
 
     try:
         doc = frappe.get_doc({
@@ -1338,10 +1342,10 @@ def create_complaint(employee: str, date: str, message: str,complaint_type: str 
 def Employee_break(
     employee_field_value: str,
     timestamp: str,
-    location: str = None,
-    device_id: str = None,
-    log_type: str = None,
-    reason: str = None
+    location: str | None = None,
+    device_id: str | None = None,
+    log_type: str | None = None,
+    reason: str | None = None
 ):
     """Add Employee Break log entry"""
     try:
@@ -1453,6 +1457,7 @@ def get_employee_working_hours(employee, date):
 
     total_hours = working_hours[0] if working_hours else 0
     return total_hours
+
 
 def format_hours_to_hhmm(hours):
     total_minutes = round(hours * 60)
@@ -1753,7 +1758,7 @@ def get_loan_product():
         )
 
 @frappe.whitelist()
-def create_loan_application(employee: str, product_name: str, amount: float, reason: str = None,repayment_amount: float = None):
+def create_loan_application(employee: str, product_name: str, amount: float, reason: str | None = None,repayment_amount: float | None = None):
     try:
         email=frappe.db.get_value("Employee", employee, "user_id")
         product_id= frappe.db.get_value("Loan Product", {"product_name": product_name}, "name")
@@ -1944,7 +1949,7 @@ def _paired_seconds(logs):
 
 
 @frappe.whitelist()
-def get_attendance_history(employee: str = None, month: int = None, year: int = None):
+def get_attendance_history(employee: str | None = None, month: int | None = None, year: int | None = None):
     """Day-wise attendance history of an employee for a month"""
     import calendar
     from hrms.hr.utils import get_holidays_for_employee
@@ -1979,24 +1984,34 @@ def get_attendance_history(employee: str = None, month: int = None, year: int = 
         if start_date > today:
             return {"employee": employee, "month": month, "year": year, "summary": summary, "days": days}
 
-        attendance = {
-            a.attendance_date: a.status
-            for a in frappe.get_all(
-                "Attendance",
-                filters={
-                    "employee": employee,
-                    "docstatus": 1,
-                    "attendance_date": ["between", [start_date, last_date]],
-                },
-                fields=["attendance_date", "status"],
-            )
-        }
+        # Hours, status and in/out times come from ERP Attendance (Attendance.working_hours),
+        # so the app shows the same figures as the ERP Attendance report.
+        attendance = {}
+        for a in frappe.get_all(
+            "Attendance",
+            filters={
+                "employee": employee,
+                "docstatus": 1,
+                "attendance_date": ["between", [start_date, last_date]],
+            },
+            fields=["attendance_date", "status", "working_hours", "in_time", "out_time"],
+            order_by="attendance_date asc",
+        ):
+            day = attendance.get(a.attendance_date)
+            if day:
+                # more than one Attendance on a day (different shifts): add the hours
+                day.working_hours = (day.working_hours or 0) + (a.working_hours or 0)
+                day.in_time = min(filter(None, [day.in_time, a.in_time]), default=None)
+                day.out_time = max(filter(None, [day.out_time, a.out_time]), default=None)
+            else:
+                attendance[a.attendance_date] = a
 
         holidays = {
             h.holiday_date
             for h in get_holidays_for_employee(employee, start_date, last_date, raise_exception=False)
         }
 
+        # Check-ins are only used for days that have no Attendance yet (e.g. today)
         range_filter = ["between", [get_datetime(start_date), get_datetime(last_date + timedelta(days=1))]]
         checkins_by_day = {}
         for c in frappe.get_all(
@@ -2007,46 +2022,38 @@ def get_attendance_history(employee: str = None, month: int = None, year: int = 
         ):
             checkins_by_day.setdefault(c.time.date(), []).append(c)
 
-        breaks_by_day = {}
-        for b in frappe.get_all(
-            "Employee Break",
-            filters={"employee": employee, "time": range_filter},
-            fields=["time", "log_type"],
-            order_by="time asc",
-        ):
-            breaks_by_day.setdefault(b.time.date(), []).append(b)
-
+        total_working_hours = 0
         current = start_date
         while current <= last_date:
-            logs = checkins_by_day.get(current, [])
-            ins = [l.time for l in logs if l.log_type == "IN"]
-            outs = [l.time for l in logs if l.log_type == "OUT"]
-            check_in = ins[0] if ins else None
-            check_out = outs[-1] if outs and (not check_in or outs[-1] > check_in) else None
+            att = attendance.get(current)
 
-            status = attendance.get(current)
-            if not status:
+            if att:
+                status = att.status
+                check_in = att.in_time
+                check_out = att.out_time
+                working_hours = flt(att.working_hours, 2)
+                worked_minutes = round(working_hours * 60)
+                total_working_hours += working_hours
+
+                if status in ("Present", "Half Day", "Work From Home"):
+                    summary["days_worked"] += 1
+                elif status == "On Leave":
+                    summary["leave_days"] += 1
+            else:
+                # No ERP Attendance yet: show the check-ins, but don't count hours or days
+                logs = checkins_by_day.get(current, [])
+                ins = [l.time for l in logs if l.log_type == "IN"]
+                outs = [l.time for l in logs if l.log_type == "OUT"]
+                check_in = ins[0] if ins else None
+                check_out = outs[-1] if outs and (not check_in or outs[-1] > check_in) else None
+
                 if logs:
                     status = "Present"
                 elif current in holidays:
                     status = "Holiday"
                 else:
                     status = "Absent"
-
-            if check_in and check_out:
-                net_seconds = _paired_seconds(logs) - _paired_seconds(breaks_by_day.get(current, []))
-                worked_minutes = int(max(net_seconds, 0) // 60)
-            elif check_in:
-                # still checked in / missed check-out
-                worked_minutes = None
-            else:
-                worked_minutes = 0
-
-            if status in ("Present", "Half Day", "Work From Home"):
-                summary["days_worked"] += 1
-            elif status == "On Leave":
-                summary["leave_days"] += 1
-            summary["total_worked_minutes"] += worked_minutes or 0
+                worked_minutes = None if logs else 0
 
             days.append({
                 "date": str(current),
@@ -2056,6 +2063,8 @@ def get_attendance_history(employee: str = None, month: int = None, year: int = 
                 "worked_minutes": worked_minutes,
             })
             current += timedelta(days=1)
+
+        summary["total_worked_minutes"] = round(total_working_hours * 60)
 
         return {
             "employee": employee,
