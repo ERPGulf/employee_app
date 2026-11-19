@@ -62,6 +62,8 @@ persistent_cache_keys = ["employee_app:auth:*"]
 
 # On-screen QR enrolment for two-factor sign-in (employee_app/twofa.py)
 before_login = ["employee_app.TwoFA.login.install"]
+after_install = "employee_app.TwoFA.setup.set_otp_issuer"
+after_migrate = ["employee_app.TwoFA.setup.set_otp_issuer"]
 on_login = ["employee_app.TwoFA.login.on_login"]
 override_whitelisted_methods = {
     "frappe.twofactor.reset_otp_secret": "employee_app.TwoFA.login.reset_otp_secret"

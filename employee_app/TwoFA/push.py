@@ -263,7 +263,7 @@ def _firebase_on():
 
 def check_setup():
     """Print pass or fail for each setting push approval needs on this site."""
-    from urllib.parse import urlparse
+
 
     def line(ok, text):
         print(("PASS  " if ok else "FAIL  ") + text)
@@ -278,10 +278,10 @@ def check_setup():
     line(bool(roles) or twofa.get_policy() != twofa.POLICY_STANDARD,
          f"Who must use it: policy {twofa.get_policy()}; roles with 2FA ticked: {', '.join(roles) or 'none'}")
 
+    from employee_app.TwoFA.setup import site_issuer
+
     issuer = frappe.get_system_settings("otp_issuer_name") or ""
-    url = urlparse(frappe.utils.get_url())
-    host = url.hostname + (f":{url.port}" if url.port else "")
-    line(issuer.replace("_", ":") == host, f"OTP Issuer Name '{issuer}' matches the site address '{host}'")
+    line(issuer == site_issuer(), f"OTP Issuer Name '{issuer}' matches the site address '{site_issuer()}'")
 
     outgoing = frappe.db.exists("Email Account", {"enable_outgoing": 1, "default_outgoing": 1})
     line(bool(outgoing), "Default outgoing Email Account")
