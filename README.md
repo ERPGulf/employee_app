@@ -1,5 +1,7 @@
 ## Employee app for ERPNext
 
+> 🔐 **Two-factor authentication (2FA):** server setup, policy, Firebase push, user and admin flows, mobile API — see **[docs/two-factor-authentication.md](docs/two-factor-authentication.md)**
+
 Attendance and related submissions through mobile APP.
 
 - **App name:** `employee_app`
