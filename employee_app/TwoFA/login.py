@@ -31,7 +31,7 @@ import frappe.twofactor as twofactor
 from frappe import _
 from frappe.utils import add_to_date, get_datetime, now_datetime, time_diff_in_seconds
 
-from employee_app.TwoFA.policy import APP, _policy_requires
+from employee_app.TwoFA.policy import APP, _policy_requires, is_exempt
 
 WINDOW_MINUTES = 60
 WINDOW_KEY = "_qr_window_until"
@@ -115,11 +115,13 @@ def install(login_manager=None):
 	)
 	_wrap(
 		"two_factor_is_enabled",
-		lambda original: lambda user=None: True if (user and _policy_requires(user)) else original(user),
+		lambda original: lambda user=None: (
+			False if (user and is_exempt(user)) else True if (user and _policy_requires(user)) else original(user)
+		),
 	)
 	_wrap(
 		"two_factor_is_enabled_for_",
-		lambda original: lambda user: True if _policy_requires(user) else original(user),
+		lambda original: lambda user: False if is_exempt(user) else True if _policy_requires(user) else original(user),
 	)
 
 

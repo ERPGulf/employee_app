@@ -157,8 +157,10 @@ def _fingerprint(secret):
 
 
 def _two_factor_applies(user):
-    from employee_app.TwoFA.policy import _policy_requires
+    from employee_app.TwoFA.policy import _policy_requires, is_exempt
 
+    if is_exempt(user):
+        return False
     if _policy_requires(user):
         return True
     return bool(cint(frappe.get_system_settings("enable_two_factor_auth"))) and bool(

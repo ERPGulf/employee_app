@@ -33,6 +33,18 @@ def policy_info() -> str:
 	return get_policy()
 
 
+# Never use 2FA. Administrator gets a long random password that nobody keeps;
+# when it is needed, the backend team resets it with bench set-admin-password.
+EXEMPT_USERS = ("Administrator",)
+
+
+def is_exempt(user) -> bool:
+	if APP not in frappe.get_installed_apps():
+		return False
+	name = user if isinstance(user, str) else getattr(user, "name", None)
+	return name in EXEMPT_USERS
+
+
 def _policy_requires(user) -> bool:
 	"""True when the policy makes two-factor sign-in compulsory for this user,
 	whatever their roles, the restricted-IP bypass or the Enable Two Factor Auth
