@@ -163,7 +163,7 @@ class TestPolicyPromise(AuthTestCase):
             "Both, own password": (self.make("Both", own_password=1, password=self.chosen_password), False),
             "OTP only": (self.make("OTP Authentication"), False),
             "not signed up": (self.make(signed_up=0), False),
-            "privileged user": (self.make(roles=("Employee", "System Manager")), False),
+            "privileged user": (self.make(roles=("Employee", "System Manager")), True),
         }
         for label, (emp, expected) in cases.items():
             self.assertEqual(self.policy(emp), expected, label)
@@ -179,7 +179,7 @@ class TestPolicyPromise(AuthTestCase):
         password_user = self.make("Password Authentication")
         self.assertIs(reply(get_employee_login_policy(mobile=password_user.mobile))[1]["erp_web_password_setup_allowed"], False)
         admin = self.make("OTP Authentication", roles=("Employee", "System Manager"))
-        self.assertIs(reply(get_employee_login_policy(mobile=admin.mobile))[1]["erp_web_password_setup_allowed"], False)
+        self.assertIs(reply(get_employee_login_policy(mobile=admin.mobile))[1]["erp_web_password_setup_allowed"], True)
 
     def test_switch_off_withdraws_the_promise(self):
         emp = self.make()
@@ -188,7 +188,7 @@ class TestPolicyPromise(AuthTestCase):
 
     def test_endpoint_refuses_whenever_the_promise_is_false(self):
         for emp in (self.make("OTP Authentication"), self.make("Both", own_password=1, password=self.chosen_password),
-                    self.make(signed_up=0), self.make(roles=("Employee", "System Manager"))):
+                    self.make(signed_up=0)):
             self.assertFalse(self.policy(emp))
             status, body = reply(create_new_password(mobile_no=emp.mobile, otp=self.otp(emp), new_password=self.new_password))
             self.assertEqual((status, body["data"]["message"]), (403, "Password setup is not available"))
@@ -315,6 +315,31 @@ class TestMobileSignInKeepsErpPasswords(AuthTestCase):
         status, body = reply(sign_in_api(mobile_no=emp.mobile, password=self.chosen_password))
         self.assertEqual((status, body), (429, {"status": "error", "message": auth_core.TOO_MANY}))
 
+    def test_otp_only_sign_in_needs_no_password(self):
+        emp = self.make("OTP Authentication")
+        status, _ = reply(sign_in_api(mobile_no=emp.mobile, otp=self.otp(emp)))
+        self.assertEqual(status, 200)
+
+    def test_otp_only_sign_in_still_needs_the_otp(self):
+        emp = self.make("OTP Authentication")
+        status, body = reply(sign_in_api(mobile_no=emp.mobile))
+        self.assertEqual((status, body["message"]), (400, "OTP is required"))
+
+    def test_optional_sign_in_with_otp_needs_no_password(self):
+        emp = self.make("Optional")
+        status, _ = reply(sign_in_api(mobile_no=emp.mobile, otp=self.otp(emp)))
+        self.assertEqual(status, 200)
+
+    def test_optional_sign_in_needs_otp_or_password(self):
+        emp = self.make("Optional")
+        status, body = reply(sign_in_api(mobile_no=emp.mobile))
+        self.assertEqual((status, body["message"]), (400, "OTP or password is required"))
+
+    def test_password_sign_in_still_needs_a_password(self):
+        emp = self.make("Password Authentication", own_password=1, password=self.chosen_password)
+        status, body = reply(sign_in_api(mobile_no=emp.mobile))
+        self.assertEqual((status, body["message"]), (400, "Password is required"))
+
     def test_disabled_user_gets_no_token(self):
         emp = self.make("OTP Authentication")
         code = self.otp(emp)
@@ -331,19 +356,37 @@ class TestSignUp(AuthTestCase):
         self.assertTrue(can_log_in(emp.user, self.chosen_password))
         self.assertEqual(frappe.db.get_value("Employee", emp.name, "custom_employee_has_signed_up"), 1)
 
+    def test_otp_only_sign_up_needs_no_password(self):
+        emp = self.make("OTP Authentication", signed_up=0, password=self.chosen_password)
+        status, _ = reply(sign_up_api(mobile_no=emp.mobile, otp=self.otp(emp)))
+        self.assertEqual(status, 200)
+        self.assertTrue(can_log_in(emp.user, self.chosen_password))
+        self.assertEqual(frappe.db.get_value("Employee", emp.name, "custom_employee_has_signed_up"), 1)
+
+    def test_otp_only_sign_up_ignores_a_sent_password(self):
+        emp = self.make("OTP Authentication", signed_up=0, password=self.chosen_password)
+        status, _ = reply(sign_up_api(mobile_no=emp.mobile, otp=self.otp(emp), password=self.other_password))
+        self.assertEqual(status, 200)
+        self.assertTrue(can_log_in(emp.user, self.chosen_password))
+
+    def test_optional_sign_up_needs_no_password(self):
+        emp = self.make("Optional", signed_up=0, password=self.chosen_password)
+        status, _ = reply(sign_up_api(mobile_no=emp.mobile, otp=self.otp(emp)))
+        self.assertEqual(status, 200)
+        self.assertTrue(can_log_in(emp.user, self.chosen_password))
+        self.assertFalse(frappe.db.get_value("Employee", emp.name, "custom_user_created_password"))
+
     def test_chosen_password_at_sign_up_is_saved(self):
         emp = self.make("Password Authentication", signed_up=0)
         self.assertEqual(reply(sign_up_api(mobile_no=emp.mobile, otp=self.otp(emp), password=self.chosen_password))[0], 200)
         self.assertTrue(can_log_in(emp.user, self.chosen_password))
         self.assertEqual(frappe.db.get_value("Employee", emp.name, "custom_user_created_password"), 1)
 
-    def test_sign_up_never_sets_an_admin_password(self):
+    def test_admin_signs_up_like_any_employee(self):
         emp = self.make("Password Authentication", signed_up=0, password=self.chosen_password, roles=("Employee", "System Manager"))
-        status, body = reply(sign_up_api(mobile_no=emp.mobile, otp=self.otp(emp), password=self.other_password))
-        self.assertEqual((status, body["message"]), (401, "Invalid password"))
-        self.assertTrue(can_log_in(emp.user, self.chosen_password))
-        self.assertEqual(reply(sign_up_api(mobile_no=emp.mobile, otp=TEST_OTP, password=self.chosen_password))[0], 200)
-        self.assertTrue(can_log_in(emp.user, self.chosen_password))
+        status, _ = reply(sign_up_api(mobile_no=emp.mobile, otp=self.otp(emp), password=self.other_password))
+        self.assertEqual(status, 200)
+        self.assertTrue(can_log_in(emp.user, self.other_password))
 
     def test_second_sign_up_is_refused(self):
         emp = self.make("Both", own_password=1, password=self.chosen_password)

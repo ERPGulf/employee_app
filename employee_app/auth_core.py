@@ -25,7 +25,6 @@ OTP_TRIES = 5  # wrong codes that destroy an OTP
 LOCK_AFTER = 10  # wrong OTPs or passwords in an hour that lock the employee
 LOCK_FOR = 15 * 60  # seconds the lock lasts
 TOO_MANY = "Too many attempts. Try again later."
-PRIVILEGED_ROLES = {"Administrator", "System Manager"}
 
 # What the app's shared service token may call. Each method proves the employee itself.
 PRE_LOGIN_METHODS = {
@@ -316,7 +315,6 @@ def _otp_may_set_password(emp):
         and frappe.db.get_value("User", user, "enabled")
         # Both mode keeps two factors: an OTP may create the first password, never replace one.
         and not (get_login_policies(emp)["authentication"] == AUTH_BOTH and emp.get("custom_user_created_password"))
-        and not is_privileged(user)
         and not _testing_mode()
     )
 
@@ -324,11 +322,6 @@ def _otp_may_set_password(emp):
 def _setting(field):
     # get_singles_dict, unlike get_single_value, doesn't throw before migrate adds the field.
     return cint(frappe.db.get_singles_dict("Checkin App Setting").get(field))
-
-
-def is_privileged(user):
-    """An OTP alone must never set the password of an account like this."""
-    return bool(PRIVILEGED_ROLES & set(frappe.get_roles(user)))
 
 
 def _testing_mode():

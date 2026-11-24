@@ -171,18 +171,19 @@ def sign_in_api(
     Params:
         mobile_no  : same phone number passed to otp_generate_for_sign_in().
         otp        : the OTP code entered by the user.
-        password   : always required by this API; for OTP-only sign-in the
-                     app sends its placeholder.
+        password   : not needed when the password policy is "No" (OTP
+                     only); anything sent is ignored. Required otherwise,
+                     except for Optional sign-in completed with an OTP.
         login_type : "sign_in" (default) or "cold_boot".
     """
     try:
         throttle_ip("sign_in")
 
-        if not mobile_no or not password:
+        if not mobile_no:
             return Response(
                 json.dumps({
                     "status":  "error",
-                    "message": "mobile_no and password are required",
+                    "message": "mobile_no is required",
                 }),
                 status=400, mimetype="application/json",
             )
@@ -216,6 +217,29 @@ def sign_in_api(
                     "message": "No user account linked to this employee",
                 }),
                 status=404, mimetype="application/json",
+            )
+
+        # ── Password policy "No" (OTP Authentication): no password is taken,
+        # so none is validated; the OTP below is mandatory. ──────────────────
+        # "Optional": the password may be left out when an OTP is sent, but
+        # one of the two is always needed.
+        if password_policy == "No":
+            password = None
+        elif password_policy == "Optional" and not password and not otp:
+            return Response(
+                json.dumps({
+                    "status":  "error",
+                    "message": "OTP or password is required",
+                }),
+                status=400, mimetype="application/json",
+            )
+        elif password_policy == "Mandatory" and not password:
+            return Response(
+                json.dumps({
+                    "status":  "error",
+                    "message": "Password is required",
+                }),
+                status=400, mimetype="application/json",
             )
 
         # ── Verify password first (when mandatory) so a wrong password
