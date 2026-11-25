@@ -1,6 +1,7 @@
 import json
 from typing import Any
 import base64
+import re
 import frappe
 from frappe import _
 from frappe.utils import now_datetime
@@ -11,7 +12,6 @@ from employee_app.auth_core import (
     OTP_TTL,
     failure_reply,
     find_employee,
-    is_privileged,
     issue_app_tokens,
     log_failure,
     erp_password_setup_allowed,
@@ -22,7 +22,6 @@ from employee_app.auth_core import (
     throttle_ip,
     throttled_reply,
     verify_otp,
-    verify_password,
 )
 from employee_app.gauth import _authenticate, _issue_bearer_token
 
@@ -296,10 +295,11 @@ def sign_up_api(mobile_no: str | int | None = None, otp: str | int | None = None
     Params:
         mobile_no : phone number used to look up the Employee.
         otp       : the OTP code entered by the user.
-        password  : always required. When the employee doesn't create one
-                    (OTP Authentication, or Optional without a password), the
-                    app sends its "egf..." placeholder, which is ignored: it
-                    never becomes the login password.
+        password  : not needed when the password policy is "No" (OTP
+                    Authentication); anything sent is ignored. Optional: may
+                    be left out (or sent as the app's "egf..." placeholder,
+                    which is ignored and never becomes the login password).
+                    Mandatory: required.
     """
     try:
         throttle_ip("sign_up")
@@ -346,7 +346,11 @@ def sign_up_api(mobile_no: str | int | None = None, otp: str | int | None = None
 
         # ── STEP 2: Validate inputs against the sign-up policy before the
         # OTP is consumed, so a rejected request doesn't burn the OTP.
-        if not password or not isinstance(password, str):
+        # Password policy "No" (OTP Authentication): no password is taken, so none is validated.
+        # "Optional": a password may be left out; one that is sent is validated as usual.
+        if password_policy == "No" or (password_policy == "Optional" and not password):
+            password = None
+        elif not password or not isinstance(password, str):
             return Response(
                 json.dumps({
                     "status":  "error",
@@ -376,22 +380,12 @@ def sign_up_api(mobile_no: str | int | None = None, otp: str | int | None = None
                 status=400, mimetype="application/json",
             )
 
-        chosen_password = not is_placeholder_password(password)
+        chosen_password = bool(password) and not is_placeholder_password(password)
 
         if not user_id or not frappe.db.get_value("User", user_id, "enabled"):
             return _credentials_refused()
 
-        # An admin account keeps the password it uses in Desk: sign-up checks it, never sets it.
-        save_password = chosen_password and not is_privileged(user_id)
-        if chosen_password and not save_password and not verify_password(employee_id, user_id, password):
-            return Response(
-                json.dumps({
-                    "status":  "error",
-                    "message": "Invalid password",
-                    "user_count": 0,
-                }),
-                status=401, mimetype="application/json",
-            )
+        save_password = chosen_password
 
         if save_password and password_too_weak(user_id, password):
             return Response(

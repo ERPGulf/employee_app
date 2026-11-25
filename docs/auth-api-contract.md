@@ -53,7 +53,7 @@ Mobile numbers are compared exactly, after normalizing to E.164: national format
 - `otp_verified_password_setup` (SDK 0.2.0) is true only when **all** of these hold:
   - the tenant switch `Checkin App Setting.allow_in_app_password_setup` is on (default off);
   - the employee is Active and has signed up;
-  - their user is enabled and not an Administrator or System Manager;
+  - their user is enabled;
   - their sign-in policy uses a password;
   - they are not a Both-mode employee who already has a password;
   - WhatsApp testing mode is off.
@@ -80,13 +80,18 @@ Sign-up has the same shape without the two policy keys. Errors are flat: `{"stat
 
 | Status | Message |
 |---|---|
+| 400 | `mobile_no is required` |
+| 400 | `Password is required` (sign-in, Mandatory password policy) |
+| 400 | `OTP or password is required` (sign-in, Optional password policy) |
+| 400 | `password is required` (sign-up, Mandatory password policy) |
 | 401 | `Invalid or expired OTP` |
 | 401 | `Invalid password` |
 | 401 | `Invalid credentials or unauthorized`, with `detail` (disabled or missing user) |
 | 409 | `Employee has already signed up` (sign-up only) |
 
 - Sign-in **never changes the login password**. The app's placeholder is ignored, and it is never accepted as a password.
-- Sign-up saves a password only when the employee chose one. An admin account's current Desk password is checked, never replaced.
+- Sign-up saves a password only when the employee chose one, admins included.
+- A password is never needed when the password policy is "No" (anything sent is ignored), and may be left out when it is "Optional". Optional sign-in still needs an OTP or a password.
 - Tokens are issued for the OAuth Client named by `Checkin App Setting.app_key` (the one `master_token` uses), or the site's first client when that isn't set.
 
 ## `create_new_password` (POST only)

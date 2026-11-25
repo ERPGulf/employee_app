@@ -17,13 +17,14 @@ def create_qr_code(doc, method):
 
 	fields = frappe.get_meta('Employee').fields
 	auth_client_name = frappe.db.get_value("OAuth Client", {}, "name")
-	if auth_client_name:
-		auth_client = frappe.get_doc("OAuth Client", auth_client_name)
-	else:
-		frappe.throw("No OAuth Client found")
+	if not auth_client_name:
+		_skip_qr(_("No OAuth Client found"))
+		return
+	auth_client = frappe.get_doc("OAuth Client", auth_client_name)
 	app_name = auth_client.app_name
 	if not app_name:
-		frappe.throw(_('App name missing in OAuth Client'))
+		_skip_qr(_("App name missing in OAuth Client"))
+		return
 
 	app_key = base64.b64encode(app_name.encode()).decode("utf-8")
 
@@ -47,10 +48,12 @@ def create_qr_code(doc, method):
 
 
 			if not doc.user_id:
-				frappe.throw(_('User ID missing for {} in the document'.format(doc.name)))
+				_skip_qr(_("User ID missing for {0}").format(doc.name))
+				return
 
 			if not frappe.local.conf.host_name:
-				frappe.throw(_('API URL (host_name) is missing in site config'))
+				_skip_qr(_("API URL (host_name) is missing in site config"))
+				return
 
 			if not app_key:
 				frappe.throw(_('App key could not be generated'))
@@ -89,6 +92,14 @@ def create_qr_code(doc, method):
 			doc.notify_update()
 
 			break
+
+
+def _skip_qr(reason):
+	"""Employee App QR code not created: tell the user, but never block saving the Employee."""
+	frappe.msgprint(
+		_("Employee App QR code not created: {0}").format(reason), indicator="orange", alert=True
+	)
+
 
 def delete_qr_code_file(doc, method):
 	"""Delete QR Code on deleted sales invoice"""
