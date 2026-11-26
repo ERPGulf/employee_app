@@ -208,6 +208,16 @@ class GAuth:
         return _json({"data": token}, 200)
 
 
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+def logout(refresh_token):
+    from employee_app.auth_core import revoke_tokens
+    if isinstance(refresh_token, str) and refresh_token:
+        user = frappe.db.get_value("OAuth Bearer Token", {"refresh_token": refresh_token}, "user")
+        if user:
+            revoke_tokens(user)          # every device of this user
+    return {"logged_out": True}
+
+
 # Create a singleton instance
 _gauth_instance = GAuth()
 
@@ -242,9 +252,6 @@ def generate_token_secure(api_key, api_secret, app_key):
 
     """Generate token with secure parameters."""
     return _gauth_instance.generate_token_secure(api_key, api_secret, app_key)
-
-
-
 
 
 @frappe.whitelist(allow_guest=True)
