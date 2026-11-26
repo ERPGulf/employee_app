@@ -1852,7 +1852,7 @@ def get_complaint_types():
 
 
 @frappe.whitelist()
-def add_offline_employee_checkins(logs):
+def add_offline_employee_checkins(logs: str | list):
     try:
         if isinstance(logs, str):
             logs = json.loads(logs)
