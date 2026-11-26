@@ -1872,20 +1872,25 @@ def add_offline_employee_checkins(logs):
                     offline_checkin=True  # Ensure offline_checkin is set to True for offline logs
                 )
 
-                if isinstance(result, dict) and result.get("error"):
+                # The helper reports a refused record by returning a Response, not by raising.
+                if isinstance(result, Response):
+                    body = json.loads(result.get_data())
                     failed.append({
                         "employee": row.get("employee"),
                         "timestamp": row.get("timestamp"),
-                        "error": result.get("error")
+                        "error": body.get("error") or body.get("message")
                     })
                 else:
                     inserted.append(result.name)
 
-            except Exception as e:
+            except Exception:
+                # A bug in this loop, not a refused record. Never send its text: the app reads
+                # errors such as "has no attribute" as "endpoint not deployed".
+                frappe.log_error(frappe.get_traceback(), "Offline Checkin Error")
                 failed.append({
                     "employee": row.get("employee"),
                     "timestamp": row.get("timestamp"),
-                    "error": str(e)
+                    "error": "Could not record this check-in."
                 })
 
         frappe.db.commit()
@@ -1904,8 +1909,9 @@ def add_offline_employee_checkins(logs):
                 mimetype="application/json",
             )
 
-        # Partial success or complete failure
-        status_code = 500 if len(inserted) == 0 else 207
+        # Partial success or complete failure. Each refusal is answered in `failed`, so this is
+        # still a 2xx: the app reads a 500 as "outcome unknown" and can't act on the reason.
+        status_code = 207 if inserted else 200
 
         return Response(
             json.dumps({
